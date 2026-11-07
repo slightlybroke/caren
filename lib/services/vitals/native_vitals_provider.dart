@@ -42,12 +42,29 @@ class NativeVitalsProvider implements VitalsProvider {
   }
 
   @override
-  Future<bool> requestCameraPermission() async {
+  Future<CameraPermissionResult> requestCameraPermission() async {
     try {
-      final bool? granted = await _methodChannel.invokeMethod<bool>('requestCameraPermission');
-      return granted ?? false;
+      final dynamic result = await _methodChannel.invokeMethod('requestCameraPermission');
+      if (result is Map) {
+        return CameraPermissionResult(
+          granted: result['granted'] as bool? ?? false,
+          permanentlyDenied: result['permanentlyDenied'] as bool? ?? false,
+        );
+      } else if (result is bool) {
+        return CameraPermissionResult(granted: result);
+      }
+      return const CameraPermissionResult(granted: false);
     } on PlatformException catch (e) {
       throw StateError('Failed to query camera permission: ${e.message}');
+    }
+  }
+
+  @override
+  Future<void> openAppSettings() async {
+    try {
+      await _methodChannel.invokeMethod('openAppSettings');
+    } on PlatformException catch (e) {
+      throw StateError('Failed to open application settings: ${e.message}');
     }
   }
 
@@ -56,7 +73,8 @@ class NativeVitalsProvider implements VitalsProvider {
     MeasurementConfig config = const MeasurementConfig(),
   }) {
     if (_isSessionActive) {
-      throw StateError('A SmartSpectra measurement session is already active. Cancel or stop the active session before starting a new one.');
+      throw StateError(
+          'A SmartSpectra measurement session is already active. Cancel or stop the active session before starting a new one.');
     }
 
     _activeConfig = config;
@@ -64,17 +82,8 @@ class NativeVitalsProvider implements VitalsProvider {
     _streamController?.close();
     _streamController = StreamController<VitalsStreamData>.broadcast();
 
-    // Trigger native start
-    _methodChannel.invokeMethod('startMeasurement', {
-      'durationSeconds': config.durationSeconds,
-      'target': config.target.name,
-      'enableTelemetry': config.enableSdkTelemetry,
-    }).catchError((e) {
-      _isSessionActive = false;
-      _streamController?.addError(e);
-    });
-
-    // Listen to native frame events from EventChannel
+    // 1. Establish EventChannel subscription BEFORE calling startMeasurement
+    // so no initial native frame events or validation events are dropped.
     _eventSubscription?.cancel();
     _eventSubscription = _eventChannel.receiveBroadcastStream().listen(
       (dynamic data) {
@@ -84,15 +93,20 @@ class NativeVitalsProvider implements VitalsProvider {
               ? MeasurementStatus.values[statusIndex]
               : MeasurementStatus.measuring;
 
+          final elapsed = (data['elapsedSeconds'] as num?)?.toInt() ?? 0;
+          final progress = config.durationSeconds > 0
+              ? (elapsed / config.durationSeconds).clamp(0.0, 1.0)
+              : 0.0;
+
           final streamData = VitalsStreamData(
             status: status,
-            elapsedSeconds: (data['elapsedSeconds'] as num?)?.toInt() ?? 0,
+            elapsedSeconds: elapsed,
             instantaneousPulse: (data['pulse'] as num?)?.toDouble(),
             instantaneousBreathing: (data['breathing'] as num?)?.toDouble(),
             waveformValue: (data['waveform'] as num?)?.toDouble(),
             isFaceDetected: data['isFaceDetected'] as bool? ?? false,
-            progress: (data['progress'] as num?)?.toDouble() ?? 0.0,
-            statusText: data['statusText'] as String? ?? 'Measuring signals...',
+            progress: progress,
+            statusText: data['statusText'] as String? ?? 'Measuring physiological signals...',
             isSimulated: false, // Genuine native reading
             confidenceScore: (data['confidence'] as num?)?.toDouble(),
             stabilityScore: (data['stability'] as num?)?.toDouble(),
@@ -109,13 +123,37 @@ class NativeVitalsProvider implements VitalsProvider {
       },
     );
 
+    // 2. Invoke startMeasurement via MethodChannel
+    _methodChannel.invokeMethod('startMeasurement', {
+      'durationSeconds': config.durationSeconds,
+      'target': config.target.name,
+      'enableTelemetry': config.enableSdkTelemetry,
+    }).catchError((dynamic e) {
+      _isSessionActive = false;
+      _eventSubscription?.cancel();
+      _streamController?.addError(e);
+    });
+
     return _streamController!.stream;
   }
 
   @override
   Future<MeasurementResult> stopMeasurement() async {
+    if (!_isSessionActive) {
+      // Idempotent stop: Return structured result without crashing
+      return MeasurementResult(
+        target: _activeConfig.target,
+        durationSeconds: 0,
+        timestamp: DateTime.now(),
+        isSimulated: false,
+        isSuccessful: false,
+        failureReason: 'No active measurement session was running.',
+      );
+    }
+
     _isSessionActive = false;
-    _eventSubscription?.cancel();
+    await _eventSubscription?.cancel();
+    _eventSubscription = null;
 
     try {
       final Map<dynamic, dynamic>? result =
@@ -162,10 +200,11 @@ class NativeVitalsProvider implements VitalsProvider {
   Future<void> cancelMeasurement() async {
     _isSessionActive = false;
     try {
-      _eventSubscription?.cancel();
+      await _eventSubscription?.cancel();
+      _eventSubscription = null;
       await _methodChannel.invokeMethod('cancelMeasurement');
     } on Exception {
-      // Ignored on cancellation
+      // Idempotent cancellation
     }
   }
 
@@ -173,11 +212,12 @@ class NativeVitalsProvider implements VitalsProvider {
   Future<void> dispose() async {
     _isSessionActive = false;
     try {
-      _eventSubscription?.cancel();
+      await _eventSubscription?.cancel();
+      _eventSubscription = null;
       await _streamController?.close();
       await _methodChannel.invokeMethod('dispose');
     } on Exception {
-      // Ignored on dispose
+      // Idempotent disposal
     }
   }
 }

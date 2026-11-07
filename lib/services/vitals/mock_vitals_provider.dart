@@ -44,9 +44,17 @@ class MockVitalsProvider implements VitalsProvider {
   }
 
   @override
-  Future<bool> requestCameraPermission() async {
+  Future<CameraPermissionResult> requestCameraPermission() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    return !shouldSimulatePermissionDenial;
+    return CameraPermissionResult(
+      granted: !shouldSimulatePermissionDenial,
+      permanentlyDenied: shouldSimulatePermissionDenial,
+    );
+  }
+
+  @override
+  Future<void> openAppSettings() async {
+    await Future.delayed(const Duration(milliseconds: 100));
   }
 
   @override

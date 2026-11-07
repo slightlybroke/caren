@@ -9,6 +9,7 @@ abstract class FamilyRepository {
   Future<FamilyMember?> getMemberById(String id);
   Future<List<DailyCheckIn>> getCheckInHistoryForMember(String memberId);
   Future<void> submitCheckIn(DailyCheckIn checkIn);
+  Future<void> addFamilyMember(FamilyMember member);
   Future<void> updateSharingPermissions(String memberId, SharingPermission permission);
   Future<void> sendGentleReminder(String memberId);
 }
@@ -136,6 +137,12 @@ class LocalFamilyRepository implements FamilyRepository {
         lastWellnessSummary: '${checkIn.feelingDisplay} • ${checkIn.sleepDisplay}',
       );
     }
+  }
+
+  @override
+  Future<void> addFamilyMember(FamilyMember member) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    _members.add(member);
   }
 
   @override

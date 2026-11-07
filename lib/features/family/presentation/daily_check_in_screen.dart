@@ -35,6 +35,7 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
   bool _showCameraMeasurement = false;
   bool _isMeasuring = false;
   bool _permissionDenied = false;
+  bool _isPermanentlyDenied = false;
   VitalsStreamData? _latestStreamData;
   StreamSubscription<VitalsStreamData>? _streamSub;
   MeasurementResult? _completedMeasurement;
@@ -55,11 +56,12 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
       _measurementError = null;
     });
 
-    final hasPermission = await provider.requestCameraPermission();
-    if (!hasPermission) {
+    final permResult = await provider.requestCameraPermission();
+    if (!permResult.granted) {
       if (mounted) {
         setState(() {
           _permissionDenied = true;
+          _isPermanentlyDenied = permResult.permanentlyDenied;
           _isMeasuring = false;
         });
       }
@@ -315,7 +317,9 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
                   if (_permissionDenied) ...[
                     const SizedBox(height: AppSpacing.sm),
                     CarenPermissionDeniedView(
+                      isPermanentlyDenied: _isPermanentlyDenied,
                       onGrantPermission: _startCameraSpotCheck,
+                      onOpenSettings: () => ref.read(vitalsProvider).openAppSettings(),
                       onContinueWithout: () => setState(() => _showCameraMeasurement = false),
                     ),
                   ],

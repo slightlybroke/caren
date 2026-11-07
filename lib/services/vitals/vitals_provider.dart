@@ -19,7 +19,10 @@ abstract class VitalsProvider {
   Future<bool> initialize({String? apiKey});
 
   /// Explicitly requests camera permission before starting video stream.
-  Future<bool> requestCameraPermission();
+  Future<CameraPermissionResult> requestCameraPermission();
+
+  /// Opens application settings when camera permission has been permanently denied.
+  Future<void> openAppSettings();
 
   /// Starts a measurement session, streaming real-time frame telemetry.
   Stream<VitalsStreamData> startMeasurement({MeasurementConfig config = const MeasurementConfig()});

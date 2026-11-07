@@ -47,6 +47,9 @@ dependencies {
     implementation("com.presagetech:smartspectra:3.4.0")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
 }
 
 flutter {

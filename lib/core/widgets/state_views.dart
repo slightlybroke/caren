@@ -101,6 +101,8 @@ class CarenPermissionDeniedView extends StatelessWidget {
   final String description;
   final VoidCallback onGrantPermission;
   final VoidCallback? onContinueWithout;
+  final VoidCallback? onOpenSettings;
+  final bool isPermanentlyDenied;
 
   const CarenPermissionDeniedView({
     super.key,
@@ -109,6 +111,8 @@ class CarenPermissionDeniedView extends StatelessWidget {
         'CAREN uses your front camera to observe pulse and breathing signals during voluntary spot-checks. We never record, upload, or store video. You can also complete your check-in with self-reported answers.',
     required this.onGrantPermission,
     this.onContinueWithout,
+    this.onOpenSettings,
+    this.isPermanentlyDenied = false,
   });
 
   @override
@@ -135,16 +139,25 @@ class CarenPermissionDeniedView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              description,
+              isPermanentlyDenied
+                  ? 'Camera access was previously declined. Please open Android App Settings and enable camera permission to use SmartSpectra camera spot-checks.'
+                  : description,
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.xl),
-            CarenButton(
-              label: 'Grant Camera Access',
-              onPressed: onGrantPermission,
-              icon: Icons.camera_alt_outlined,
-            ),
+            if (isPermanentlyDenied && onOpenSettings != null)
+              CarenButton(
+                label: 'Open Android Settings',
+                onPressed: onOpenSettings,
+                icon: Icons.settings_outlined,
+              )
+            else
+              CarenButton(
+                label: 'Grant Camera Access',
+                onPressed: onGrantPermission,
+                icon: Icons.camera_alt_outlined,
+              ),
             if (onContinueWithout != null) ...[
               const SizedBox(height: AppSpacing.sm),
               CarenButton(

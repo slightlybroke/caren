@@ -110,6 +110,26 @@ void main() {
       await tester.tap(find.text('Grant Camera Access'));
       expect(granted, isTrue);
     });
+
+    testWidgets('CarenPermissionDeniedView with isPermanentlyDenied triggers onOpenSettings', (tester) async {
+      bool settingsOpened = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CarenPermissionDeniedView(
+              isPermanentlyDenied: true,
+              onGrantPermission: () {},
+              onOpenSettings: () => settingsOpened = true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Open Android Settings'), findsOneWidget);
+      await tester.tap(find.text('Open Android Settings'));
+      expect(settingsOpened, isTrue);
+    });
   });
 }
 

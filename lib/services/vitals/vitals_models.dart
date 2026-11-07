@@ -68,6 +68,17 @@ enum MeasurementStatus {
   measurementCancelled,
 }
 
+/// Result returned from camera permission requests.
+class CameraPermissionResult {
+  final bool granted;
+  final bool permanentlyDenied;
+
+  const CameraPermissionResult({
+    required this.granted,
+    this.permanentlyDenied = false,
+  });
+}
+
 /// Configuration options for SmartSpectra measurement session.
 class MeasurementConfig {
   final MeasurementTarget target;

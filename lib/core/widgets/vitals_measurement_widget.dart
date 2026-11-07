@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_spacing.dart';
@@ -63,7 +64,7 @@ class VitalsMeasurementWidget extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
           ],
 
-          // Camera Viewport Simulation / Frame View
+          // Camera Viewport: Real Android CameraX PreviewView or Mock Animation
           Container(
             height: 220,
             width: double.infinity,
@@ -71,94 +72,102 @@ class VitalsMeasurementWidget extends StatelessWidget {
               color: Colors.black.withAlpha(235),
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Simulated Camera Feed Background / Ambient Pulse
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    gradient: RadialGradient(
-                      colors: [
-                        isFaceDetected
-                            ? AppColors.primaryLight.withAlpha(60)
-                            : Colors.white.withAlpha(20),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Face Positioning Oval Guide
-                Container(
-                  width: 130,
-                  height: 170,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(70),
-                    border: Border.all(
-                      color: isFaceDetected ? AppColors.secondary : Colors.white.withAlpha(120),
-                      width: 2.5,
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      isFaceDetected ? Icons.face_rounded : Icons.face_retouching_natural,
-                      size: 48,
-                      color: isFaceDetected
-                          ? AppColors.secondary.withAlpha(160)
-                          : Colors.white.withAlpha(80),
-                    ),
-                  ),
-                ),
-
-                // Real-Time Photoplethysmogram (PPG) Waveform Overlay
-                Positioned(
-                  bottom: 8,
-                  left: 12,
-                  right: 12,
-                  height: 48,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      color: Colors.black.withAlpha(120),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: CustomPaint(
-                        painter: _PpgWaveformPainter(
-                          waveformValue: streamData?.waveformValue ?? 0.0,
-                          progress: progress,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Hardware Camera feed on Android, or ambient gradient simulation for mock/dev
+                  if (!isSimulated && defaultTargetPlatform == TargetPlatform.android)
+                    const AndroidView(
+                      viewType: 'com.caren.app/smartspectra_camera_view',
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          colors: [
+                            isFaceDetected
+                                ? AppColors.primaryLight.withAlpha(60)
+                                : Colors.white.withAlpha(20),
+                            Colors.transparent,
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                ),
 
-                // Status Pill on top of camera
-                Positioned(
-                  top: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  // Face Positioning Oval Guide overlay
+                  Container(
+                    width: 130,
+                    height: 170,
                     decoration: BoxDecoration(
-                      color: Colors.black.withAlpha(160),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(70),
+                      border: Border.all(
+                        color: isFaceDetected ? AppColors.secondary : Colors.white.withAlpha(120),
+                        width: 2.5,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isFaceDetected ? Icons.check_circle : Icons.warning_amber_rounded,
-                          size: 14,
-                          color: isFaceDetected ? AppColors.secondaryLight : Colors.amber,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _getStatusHeader(status),
-                          style: AppTypography.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                    child: Center(
+                      child: Icon(
+                        isFaceDetected ? Icons.face_rounded : Icons.face_retouching_natural,
+                        size: 48,
+                        color: isFaceDetected
+                            ? AppColors.secondary.withAlpha(160)
+                            : Colors.white.withAlpha(80),
+                      ),
                     ),
                   ),
-                ),
-              ],
+
+                  // Real-Time Photoplethysmogram (PPG) Waveform Overlay
+                  if (streamData?.waveformValue != null)
+                    Positioned(
+                      bottom: 8,
+                      left: 12,
+                      right: 12,
+                      height: 48,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          color: Colors.black.withAlpha(120),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: CustomPaint(
+                            painter: _PpgWaveformPainter(
+                              waveformValue: streamData!.waveformValue!,
+                              progress: progress,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Status Pill on top of camera
+                  Positioned(
+                    top: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withAlpha(160),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isFaceDetected ? Icons.check_circle : Icons.warning_amber_rounded,
+                            size: 14,
+                            color: isFaceDetected ? AppColors.secondaryLight : Colors.amber,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _getStatusHeader(status),
+                            style: AppTypography.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -232,7 +241,8 @@ class VitalsMeasurementWidget extends StatelessWidget {
           if (streamData?.confidenceScore != null) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'SDK Confidence: ${(streamData!.confidenceScore! * 100).toInt()}% • Stability: ${(streamData?.stabilityScore != null ? (streamData!.stabilityScore! * 100).toInt() : 90)}%',
+              'SDK Confidence: ${(streamData!.confidenceScore! * 100).toInt()}%'
+              '${streamData?.stabilityScore != null ? ' • Stability: ${(streamData!.stabilityScore! * 100).toInt()}%' : ''}',
               style: AppTypography.caption.copyWith(color: AppColors.textMuted),
             ),
           ],

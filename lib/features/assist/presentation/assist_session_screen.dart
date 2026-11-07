@@ -102,9 +102,9 @@ class _AssistSessionScreenState extends ConsumerState<AssistSessionScreen> {
       _vitalsStreamData = null;
     });
 
-    final granted = await provider.requestCameraPermission();
-    if (!granted) {
-      setState(() => _isMeasuring = false);
+    final permResult = await provider.requestCameraPermission();
+    if (!permResult.granted) {
+      if (mounted) setState(() => _isMeasuring = false);
       return;
     }
 

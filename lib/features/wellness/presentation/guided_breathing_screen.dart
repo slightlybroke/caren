@@ -130,9 +130,9 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
       _vitalsData = null;
     });
 
-    final hasPermission = await provider.requestCameraPermission();
-    if (!hasPermission) {
-      setState(() => _isMeasuringVitals = false);
+    final permResult = await provider.requestCameraPermission();
+    if (!permResult.granted) {
+      if (mounted) setState(() => _isMeasuringVitals = false);
       return;
     }
 
