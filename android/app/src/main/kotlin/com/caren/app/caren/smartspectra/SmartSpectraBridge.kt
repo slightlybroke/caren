@@ -77,12 +77,22 @@ class SmartSpectraBridge(
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "initialize" -> {
-                val apiKey = call.argument<String>("apiKey")
+                val apiKey = com.caren.app.caren.BuildConfig.SMARTSPECTRA_API_KEY
+                if (apiKey.isBlank()) {
+                    isInitialized = false
+                    result.error(
+                        "CREDENTIALS_MISSING",
+                        "SmartSpectra API key is missing or empty in android/local.properties (SMARTSPECTRA_API_KEY).",
+                        null
+                    )
+                    return
+                }
+
                 try {
                     val sdk = SmartSpectraSdk.shared
-                    if (!apiKey.isNullOrBlank()) {
-                        sdk.config.apiKey = apiKey
-                    }
+                    sdk.config.apiKey = apiKey
+                    // Explicitly disable telemetry during initialization for user privacy
+                    sdk.config.enableTelemetry = false
                     isInitialized = true
                     result.success(true)
                 } catch (e: Exception) {

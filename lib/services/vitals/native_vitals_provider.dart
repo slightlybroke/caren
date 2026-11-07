@@ -27,9 +27,8 @@ class NativeVitalsProvider implements VitalsProvider {
   @override
   Future<bool> initialize({String? apiKey}) async {
     try {
-      final bool? success = await _methodChannel.invokeMethod<bool>('initialize', {
-        'apiKey': apiKey,
-      });
+      // Native configuration reads SMARTSPECTRA_API_KEY directly from BuildConfig (via local.properties)
+      final bool? success = await _methodChannel.invokeMethod<bool>('initialize');
       _isAvailable = success ?? false;
       return _isAvailable;
     } on MissingPluginException catch (e) {

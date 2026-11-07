@@ -33,6 +33,13 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local environment and secrets
+**/local.properties
+key.properties
+**/*.keystore
+**/*.jks
+presage_services.xml
+
 # Symbolication related
 app.*.symbols
 
