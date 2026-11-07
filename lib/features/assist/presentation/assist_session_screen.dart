@@ -9,12 +9,15 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
 import '../../../core/widgets/simulated_banner.dart';
+import '../../../core/widgets/vitals_measurement_widget.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../services/vitals/vitals_models.dart';
 import '../../../services/vitals/vitals_provider.dart';
 import '../data/assist_repository.dart';
 import '../domain/assist_observation.dart';
 import '../domain/assist_session.dart';
+import '../../profile/data/profile_repository.dart';
+import '../../profile/domain/user_profile.dart';
 
 class AssistSessionScreen extends ConsumerStatefulWidget {
   final String? sessionId;
@@ -106,7 +109,10 @@ class _AssistSessionScreenState extends ConsumerState<AssistSessionScreen> {
     }
 
     final stream = provider.startMeasurement(
-      config: const MeasurementConfig(durationSeconds: 15),
+      config: const MeasurementConfig(
+        target: MeasurementTarget.pulseOnly,
+        durationSeconds: 15,
+      ),
     );
 
     _vitalsSub = stream.listen(
@@ -247,38 +253,70 @@ class _AssistSessionScreenState extends ConsumerState<AssistSessionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Always-Visible Emergency Call Button
-            CarenCard(
-              backgroundColor: AppColors.dangerContainer,
-              borderColor: AppColors.danger,
-              child: Row(
-                children: [
-                  const Icon(Icons.emergency_rounded, color: AppColors.danger, size: 28),
-                  const SizedBox(width: AppSpacing.sm),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Immediate Need?', style: AppTypography.labelLarge),
-                        Text('Call dispatchers if condition changes.', style: AppTypography.caption),
-                      ],
-                    ),
+            // Always-Visible Emergency Call Button with Localized Number
+            Consumer(
+              builder: (context, ref, child) {
+                final profileAsync = ref.watch(userProfileProvider);
+                final emergencyNumber = profileAsync.asData?.value.emergencyNumber ?? EmergencyDirectory.fallbackNumber;
+                final country = profileAsync.asData?.value.country ?? 'India';
+
+                return CarenCard(
+                  backgroundColor: AppColors.dangerContainer,
+                  borderColor: AppColors.danger,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.emergency_rounded, color: AppColors.danger, size: 28),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Immediate Need? ($emergencyNumber)', style: AppTypography.labelLarge),
+                            Text('Contact dispatchers ($country) if condition changes.', style: AppTypography.caption),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.danger,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text('Contact Emergency ($emergencyNumber)'),
+                              content: Text(
+                                'Are you sure you want to open the dialer for $emergencyNumber ($country)?\n\nCAREN will never place a call automatically.',
+                                style: AppTypography.bodyMedium,
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+                                  icon: const Icon(Icons.phone, color: Colors.white, size: 18),
+                                  onPressed: () {
+                                    ref.read(assistRepositoryProvider).logEmergencyServicesContacted(_session!.id);
+                                    Navigator.pop(ctx);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Prepared dialer action for $emergencyNumber ($country).')),
+                                    );
+                                  },
+                                  label: Text('Open Dialer ($emergencyNumber)', style: const TextStyle(color: Colors.white)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: Text('Emergency ($emergencyNumber)'),
+                      ),
+                    ],
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.danger,
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () {
-                      ref.read(assistRepositoryProvider).logEmergencyServicesContacted(_session!.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Simulated emergency 911 contact logged.')),
-                      );
-                    },
-                    child: const Text('Call 911'),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.lg),
 
@@ -381,12 +419,18 @@ class _AssistSessionScreenState extends ConsumerState<AssistSessionScreen> {
                   ),
                   if (_isConsentedToSpotCheck) ...[
                     if (_isMeasuring) ...[
-                      const SimulatedBanner(),
                       const SizedBox(height: AppSpacing.sm),
-                      LinearProgressIndicator(value: _vitalsStreamData?.progress ?? 0.0),
+                      VitalsMeasurementWidget(
+                        streamData: _vitalsStreamData,
+                        onCancel: () {
+                          _vitalsSub?.cancel();
+                          ref.read(vitalsProvider).cancelMeasurement();
+                          setState(() => _isMeasuring = false);
+                        },
+                      ),
                     ] else ...[
                       CarenButton(
-                        label: 'Take 15s Voluntary Spot Check',
+                        label: 'Take 15s Voluntary Spot Check (12s window)',
                         variant: CarenButtonVariant.outline,
                         onPressed: _startConsentSpotCheck,
                       ),

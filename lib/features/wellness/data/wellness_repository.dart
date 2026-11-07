@@ -17,6 +17,8 @@ class LocalWellnessRepository implements WellnessRepository {
       durationMinutes: 5,
       cadence: BreathingCadence.gentlePaced,
       preSessionVitals: MeasurementResult(
+        target: MeasurementTarget.breathingAndPulse,
+        durationSeconds: 30,
         pulseRateBpm: 76,
         breathingRateBpm: 17,
         qualityScore: 0.92,
@@ -25,6 +27,8 @@ class LocalWellnessRepository implements WellnessRepository {
         isSuccessful: true,
       ),
       postSessionVitals: MeasurementResult(
+        target: MeasurementTarget.breathingAndPulse,
+        durationSeconds: 30,
         pulseRateBpm: 69,
         breathingRateBpm: 12,
         qualityScore: 0.94,

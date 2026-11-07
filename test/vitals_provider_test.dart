@@ -8,7 +8,7 @@ void main() {
 
     setUp(() {
       provider = MockVitalsProvider(
-        updateInterval: const Duration(milliseconds: 50),
+        updateInterval: const Duration(milliseconds: 10), // Fast ticks for test
       );
     });
 
@@ -36,26 +36,32 @@ void main() {
 
     test('startMeasurement streams telemetry explicitly marked as isSimulated', () async {
       final stream = provider.startMeasurement(
-        config: const MeasurementConfig(durationSeconds: 1),
+        config: const MeasurementConfig(
+          target: MeasurementTarget.pulseOnly,
+          durationSeconds: 15,
+        ),
       );
 
       final firstEvent = await stream.first;
       expect(firstEvent.isSimulated, isTrue);
       expect(firstEvent.progress, greaterThanOrEqualTo(0.0));
       expect(firstEvent.statusText, isNotEmpty);
+      expect(firstEvent.status, equals(MeasurementStatus.preparingCamera));
     });
 
-    test('stopMeasurement produces result visibly tagged as simulated', () async {
+    test('stopping before 12s confidence window fails with explicit window reason', () async {
       provider.startMeasurement(
-        config: const MeasurementConfig(durationSeconds: 1),
+        config: const MeasurementConfig(
+          target: MeasurementTarget.pulseOnly,
+          durationSeconds: 15,
+        ),
       );
 
+      // Stop immediately before 12s has elapsed
       final result = await provider.stopMeasurement();
       expect(result.isSimulated, isTrue);
-      expect(result.isSuccessful, isTrue);
-      expect(result.pulseRateBpm, isNotNull);
-      expect(result.breathingRateBpm, isNotNull);
-      expect(result.notes, contains('[SIMULATED]'));
+      expect(result.isSuccessful, isFalse);
+      expect(result.failureReason, contains('confidence window'));
     });
 
     test('stopMeasurement with failure simulation returns unsuccessful result', () async {
@@ -67,4 +73,3 @@ void main() {
     });
   });
 }
-

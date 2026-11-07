@@ -7,24 +7,26 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_app_bar.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
+import '../../profile/data/profile_repository.dart';
+import '../../profile/domain/user_profile.dart';
 import '../data/assist_repository.dart';
 
 class AssistLandingScreen extends ConsumerWidget {
   const AssistLandingScreen({super.key});
 
-  void _showEmergencyDialog(BuildContext context, WidgetRef ref) {
+  void _showEmergencyDialog(BuildContext context, String emergencyNumber, String country) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 28),
-            SizedBox(width: 8),
-            Text('Contact Emergency Services'),
+            const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 28),
+            const SizedBox(width: 8),
+            Text('Contact Emergency Services ($emergencyNumber)'),
           ],
         ),
-        content: const Text(
-          'In a critical situation, always call local emergency dispatchers immediately (e.g. 911 / 112). Do not delay CPR, AED use, or official first-responder guidance to use any app.',
+        content: Text(
+          'In a critical or acute situation, contact official emergency dispatchers ($emergencyNumber in $country). Do not delay CPR, AED use, or official first-responder guidance to use any app.\n\nNote: CAREN will never initiate a phone call automatically without your explicit action.',
           style: AppTypography.bodyMedium,
         ),
         actions: [
@@ -32,15 +34,18 @@ class AssistLandingScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Dismiss'),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            icon: const Icon(Icons.phone, color: Colors.white, size: 18),
             onPressed: () {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Simulated emergency dispatch action triggered.')),
+                SnackBar(
+                  content: Text('Prepared dialer action for emergency number $emergencyNumber ($country). No call was initiated automatically.'),
+                ),
               );
             },
-            child: const Text('Call 911 / Emergency', style: TextStyle(color: Colors.white)),
+            label: Text('Open Dialer for $emergencyNumber', style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -49,6 +54,10 @@ class AssistLandingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(userProfileProvider);
+    final emergencyNumber = profileAsync.asData?.value.emergencyNumber ?? EmergencyDirectory.fallbackNumber;
+    final country = profileAsync.asData?.value.country ?? 'India';
+
     return Scaffold(
       appBar: const CarenAppBar(
         title: 'Safety Assist',
@@ -58,7 +67,7 @@ class AssistLandingScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prominent Emergency Banner (Crucial Safety Rule)
+            // Prominent Emergency Banner (Localized Emergency Number)
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
@@ -80,16 +89,16 @@ class AssistLandingScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xs),
-                  const Text(
-                    'If someone is unresponsive, having chest pain, or struggling to breathe, call emergency services immediately.',
+                  Text(
+                    'If someone nearby is unresponsive, experiencing severe chest discomfort, or struggling to breathe, contact local emergency dispatch ($emergencyNumber in $country) immediately.',
                     style: AppTypography.bodyMedium,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   CarenButton(
-                    label: 'Call Emergency Services (911)',
+                    label: 'Emergency Services ($emergencyNumber)',
                     icon: Icons.phone_in_talk,
                     variant: CarenButtonVariant.danger,
-                    onPressed: () => _showEmergencyDialog(context, ref),
+                    onPressed: () => _showEmergencyDialog(context, emergencyNumber, country),
                   ),
                 ],
               ),

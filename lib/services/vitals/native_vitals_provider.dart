@@ -3,16 +3,20 @@ import 'package:flutter/services.dart';
 import 'vitals_models.dart';
 import 'vitals_provider.dart';
 
-/// Production-ready Platform Channel implementation of [VitalsProvider].
-/// Communicates with native Android Kotlin SmartSpectra SDK via MethodChannel
-/// and EventChannel. Kept ready for Swift/iOS implementation.
+/// Platform Channel implementation of [VitalsProvider] interfacing directly
+/// with the native Presage SmartSpectra Android SDK (Kotlin) / iOS SDK (Swift).
+///
+/// Strictly surfaces genuine integration and hardware results.
+/// NEVER silently falls back to simulated data.
 class NativeVitalsProvider implements VitalsProvider {
   static const MethodChannel _methodChannel = MethodChannel('com.caren.app/smartspectra');
   static const EventChannel _eventChannel = EventChannel('com.caren.app/smartspectra_stream');
 
   bool _isAvailable = false;
+  bool _isSessionActive = false;
   StreamSubscription? _eventSubscription;
   StreamController<VitalsStreamData>? _streamController;
+  MeasurementConfig _activeConfig = const MeasurementConfig();
 
   @override
   bool get isAvailable => _isAvailable;
@@ -28,12 +32,12 @@ class NativeVitalsProvider implements VitalsProvider {
       });
       _isAvailable = success ?? false;
       return _isAvailable;
-    } on MissingPluginException {
+    } on MissingPluginException catch (e) {
       _isAvailable = false;
-      return false;
-    } on PlatformException {
+      throw UnsupportedError('SmartSpectra native plugin channel is not registered on this platform: $e');
+    } on PlatformException catch (e) {
       _isAvailable = false;
-      return false;
+      throw StateError('SmartSpectra native initialization failed: [${e.code}] ${e.message}');
     }
   }
 
@@ -42,8 +46,8 @@ class NativeVitalsProvider implements VitalsProvider {
     try {
       final bool? granted = await _methodChannel.invokeMethod<bool>('requestCameraPermission');
       return granted ?? false;
-    } on Exception {
-      return false;
+    } on PlatformException catch (e) {
+      throw StateError('Failed to query camera permission: ${e.message}');
     }
   }
 
@@ -51,38 +55,57 @@ class NativeVitalsProvider implements VitalsProvider {
   Stream<VitalsStreamData> startMeasurement({
     MeasurementConfig config = const MeasurementConfig(),
   }) {
+    if (_isSessionActive) {
+      throw StateError('A SmartSpectra measurement session is already active. Cancel or stop the active session before starting a new one.');
+    }
+
+    _activeConfig = config;
+    _isSessionActive = true;
     _streamController?.close();
     _streamController = StreamController<VitalsStreamData>.broadcast();
 
-    // Trigger start on native side
+    // Trigger native start
     _methodChannel.invokeMethod('startMeasurement', {
       'durationSeconds': config.durationSeconds,
-      'requestPulseRate': config.requestPulseRate,
-      'requestBreathingRate': config.requestBreathingRate,
-      'requestHrv': config.requestHrv,
+      'target': config.target.name,
+      'enableTelemetry': config.enableSdkTelemetry,
     }).catchError((e) {
+      _isSessionActive = false;
       _streamController?.addError(e);
     });
 
-    // Listen to native stream events
+    // Listen to native frame events from EventChannel
     _eventSubscription?.cancel();
     _eventSubscription = _eventChannel.receiveBroadcastStream().listen(
       (dynamic data) {
         if (data is Map) {
+          final statusIndex = data['status'] as int? ?? 3;
+          final status = statusIndex >= 0 && statusIndex < MeasurementStatus.values.length
+              ? MeasurementStatus.values[statusIndex]
+              : MeasurementStatus.measuring;
+
           final streamData = VitalsStreamData(
+            status: status,
+            elapsedSeconds: (data['elapsedSeconds'] as num?)?.toInt() ?? 0,
             instantaneousPulse: (data['pulse'] as num?)?.toDouble(),
             instantaneousBreathing: (data['breathing'] as num?)?.toDouble(),
             waveformValue: (data['waveform'] as num?)?.toDouble(),
             isFaceDetected: data['isFaceDetected'] as bool? ?? false,
             progress: (data['progress'] as num?)?.toDouble() ?? 0.0,
-            statusText: data['statusText'] as String? ?? 'Measuring...',
+            statusText: data['statusText'] as String? ?? 'Measuring signals...',
             isSimulated: false, // Genuine native reading
+            confidenceScore: (data['confidence'] as num?)?.toDouble(),
+            stabilityScore: (data['stability'] as num?)?.toDouble(),
           );
           _streamController?.add(streamData);
         }
       },
       onError: (dynamic error) {
+        _isSessionActive = false;
         _streamController?.addError(error);
+      },
+      onDone: () {
+        _isSessionActive = false;
       },
     );
 
@@ -91,42 +114,53 @@ class NativeVitalsProvider implements VitalsProvider {
 
   @override
   Future<MeasurementResult> stopMeasurement() async {
+    _isSessionActive = false;
+    _eventSubscription?.cancel();
+
     try {
-      _eventSubscription?.cancel();
       final Map<dynamic, dynamic>? result =
           await _methodChannel.invokeMethod<Map<dynamic, dynamic>>('stopMeasurement');
 
       if (result == null) {
         return MeasurementResult(
+          target: _activeConfig.target,
+          durationSeconds: 0,
           timestamp: DateTime.now(),
           isSimulated: false,
           isSuccessful: false,
-          notes: 'No measurement data received from native SDK.',
+          failureReason: 'No response received from native SmartSpectra SDK.',
         );
       }
 
       return MeasurementResult(
+        target: _activeConfig.target,
+        durationSeconds: (result['durationSeconds'] as num?)?.toInt() ?? 0,
         pulseRateBpm: (result['pulseRateBpm'] as num?)?.toDouble(),
         breathingRateBpm: (result['breathingRateBpm'] as num?)?.toDouble(),
         hrvRmssdMs: (result['hrvRmssdMs'] as num?)?.toDouble(),
         qualityScore: (result['qualityScore'] as num?)?.toDouble(),
+        stabilityStatus: result['stabilityStatus'] as String?,
         timestamp: DateTime.now(),
-        isSimulated: false,
+        isSimulated: false, // Genuine
         isSuccessful: result['isSuccessful'] as bool? ?? false,
+        failureReason: result['failureReason'] as String?,
         notes: result['notes'] as String?,
       );
-    } on Exception catch (e) {
+    } on PlatformException catch (e) {
       return MeasurementResult(
+        target: _activeConfig.target,
+        durationSeconds: 0,
         timestamp: DateTime.now(),
         isSimulated: false,
         isSuccessful: false,
-        notes: 'Native measurement failed: $e',
+        failureReason: 'Native SDK error: ${e.message}',
       );
     }
   }
 
   @override
   Future<void> cancelMeasurement() async {
+    _isSessionActive = false;
     try {
       _eventSubscription?.cancel();
       await _methodChannel.invokeMethod('cancelMeasurement');
@@ -137,6 +171,7 @@ class NativeVitalsProvider implements VitalsProvider {
 
   @override
   Future<void> dispose() async {
+    _isSessionActive = false;
     try {
       _eventSubscription?.cancel();
       await _streamController?.close();
@@ -146,4 +181,3 @@ class NativeVitalsProvider implements VitalsProvider {
     }
   }
 }
-

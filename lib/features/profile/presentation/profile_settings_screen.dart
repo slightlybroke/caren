@@ -8,9 +8,52 @@ import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../data/profile_repository.dart';
+import '../domain/user_profile.dart';
 
 class ProfileSettingsScreen extends ConsumerWidget {
   const ProfileSettingsScreen({super.key});
+
+  void _showCountrySelectionDialog(
+    BuildContext context,
+    WidgetRef ref,
+    UserProfile profile,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Country for Emergency Dispatch'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: EmergencyDirectory.countryNumbers.entries.map((entry) {
+              final isSelected = profile.country == entry.key;
+              return ListTile(
+                title: Text(entry.key, style: AppTypography.bodyLarge),
+                subtitle: Text('Dispatch: ${entry.value}', style: AppTypography.caption),
+                trailing: isSelected
+                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                    : null,
+                onTap: () {
+                  ref.read(profileRepositoryProvider).updateProfile(
+                        profile.copyWith(country: entry.key),
+                      );
+                  ref.invalidate(userProfileProvider);
+                  Navigator.pop(ctx);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -106,6 +149,17 @@ class ProfileSettingsScreen extends ConsumerWidget {
                                 profile.copyWith(enableGentleReminders: val),
                               );
                         },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Country & Emergency Dispatch', style: AppTypography.labelLarge),
+                        subtitle: Text(
+                          '${profile.country} • Emergency Number: ${profile.emergencyNumber}',
+                          style: AppTypography.caption,
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textMuted),
+                        onTap: () => _showCountrySelectionDialog(context, ref, profile),
                       ),
                       const Divider(),
                       ListTile(

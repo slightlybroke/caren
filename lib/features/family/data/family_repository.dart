@@ -79,9 +79,12 @@ class LocalFamilyRepository implements FamilyRepository {
       tookPrescribedMedications: true,
       personalNote: 'Had morning tea in the garden. Feeling refreshed.',
       optionalMeasurement: MeasurementResult(
+        target: MeasurementTarget.breathingAndPulse,
+        durationSeconds: 30,
         pulseRateBpm: 68,
         breathingRateBpm: 14,
         qualityScore: 0.95,
+        stabilityStatus: 'Stable camera and steady lighting',
         timestamp: DateTime.now().subtract(const Duration(hours: 2, minutes: 10)),
         isSimulated: true, // Marked simulated
         isSuccessful: true,

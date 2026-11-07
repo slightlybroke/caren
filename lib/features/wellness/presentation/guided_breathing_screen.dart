@@ -137,7 +137,10 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
     }
 
     final stream = provider.startMeasurement(
-      config: const MeasurementConfig(durationSeconds: 10),
+      config: const MeasurementConfig(
+        target: MeasurementTarget.pulseOnly,
+        durationSeconds: 15, // Meets 12s confidence window
+      ),
     );
 
     _vitalsSub = stream.listen(
@@ -352,7 +355,7 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
                   LinearProgressIndicator(value: _vitalsData?.progress ?? 0.0),
                 ] else ...[
                   CarenButton(
-                    label: 'Check Pulse First (Optional 10s)',
+                    label: 'Check Pulse First (15s • 12s window)',
                     variant: CarenButtonVariant.outline,
                     onPressed: () => _runVitalsSpotCheck(isPre: true),
                   ),
@@ -489,7 +492,7 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
           Text(_vitalsData?.statusText ?? 'Measuring...', style: AppTypography.caption),
         ] else ...[
           CarenButton(
-            label: 'Take 10s Post-Session Check',
+            label: 'Take 15s Post-Session Check (12s window)',
             icon: Icons.camera_alt_outlined,
             onPressed: () => _runVitalsSpotCheck(isPre: false),
           ),

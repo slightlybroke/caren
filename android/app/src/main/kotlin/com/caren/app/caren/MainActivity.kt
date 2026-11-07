@@ -13,6 +13,16 @@ class MainActivity : FlutterActivity() {
         smartSpectraBridge = SmartSpectraBridge(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
+    override fun onPause() {
+        super.onPause()
+        smartSpectraBridge?.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        smartSpectraBridge?.onResume()
+    }
+
     override fun onDestroy() {
         smartSpectraBridge?.cleanup()
         super.onDestroy()

@@ -8,6 +8,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
 import '../../../core/widgets/simulated_banner.dart';
+import '../../../core/widgets/vitals_measurement_widget.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../services/vitals/vitals_models.dart';
@@ -29,7 +30,8 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
   final TextEditingController _noteController = TextEditingController();
   bool _shareWithFamily = true;
 
-  // Camera Spot Check State
+  // Camera Spot Check State (Metric-Aware)
+  MeasurementTarget _selectedTarget = MeasurementTarget.pulseOnly;
   bool _showCameraMeasurement = false;
   bool _isMeasuring = false;
   bool _permissionDenied = false;
@@ -70,7 +72,10 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
     });
 
     final stream = provider.startMeasurement(
-      config: const MeasurementConfig(durationSeconds: 15),
+      config: MeasurementConfig(
+        target: _selectedTarget,
+        durationSeconds: _selectedTarget.defaultDurationSeconds,
+      ),
     );
 
     _streamSub = stream.listen(
@@ -270,8 +275,37 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
                   const SizedBox(height: AppSpacing.sm),
 
                   if (!_showCameraMeasurement && _completedMeasurement == null) ...[
+                    Text('Select Measurement Window:', style: AppTypography.labelMedium),
+                    const SizedBox(height: AppSpacing.xs),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Pulse Only (15s • 12s window)'),
+                          selected: _selectedTarget == MeasurementTarget.pulseOnly,
+                          selectedColor: AppColors.primaryContainer,
+                          onSelected: (val) {
+                            if (val) setState(() => _selectedTarget = MeasurementTarget.pulseOnly);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('Pulse & Breathing (30s window)'),
+                          selected: _selectedTarget == MeasurementTarget.breathingAndPulse,
+                          selectedColor: AppColors.primaryContainer,
+                          onSelected: (val) {
+                            if (val) setState(() => _selectedTarget = MeasurementTarget.breathingAndPulse);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      _selectedTarget.description,
+                      style: AppTypography.caption,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
                     CarenButton(
-                      label: 'Take 15s Camera Spot Check',
+                      label: 'Begin ${_selectedTarget.displayName}',
                       icon: Icons.camera_alt_outlined,
                       variant: CarenButtonVariant.outline,
                       onPressed: _startCameraSpotCheck,
@@ -295,24 +329,10 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
                   ],
 
                   if (_isMeasuring) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    const SimulatedBanner(),
-                    const SizedBox(height: AppSpacing.md),
-                    LinearProgressIndicator(
-                      value: _latestStreamData?.progress ?? 0.0,
-                      backgroundColor: AppColors.border,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      _latestStreamData?.statusText ?? 'Analyzing signals...',
-                      style: AppTypography.labelMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    CarenButton(
-                      label: 'Cancel Camera Check',
-                      variant: CarenButtonVariant.text,
-                      onPressed: _cancelCameraMeasurement,
+                    const SizedBox(height: AppSpacing.sm),
+                    VitalsMeasurementWidget(
+                      streamData: _latestStreamData,
+                      onCancel: _cancelCameraMeasurement,
                     ),
                   ],
 

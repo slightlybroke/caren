@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'vitals_models.dart';
+import '../../features/profile/data/profile_repository.dart';
 import 'mock_vitals_provider.dart';
+import 'native_vitals_provider.dart';
+import 'vitals_models.dart';
 
 /// Abstract contract for camera-based wellness vitals measurement.
 /// Decouples Flutter UI from native SDK implementations (Android SmartSpectra via Kotlin,
@@ -32,11 +34,29 @@ abstract class VitalsProvider {
   Future<void> dispose();
 }
 
-/// Riverpod provider for the vitals service.
-/// Defaults to MockVitalsProvider with simulated mode enabled for safe local development.
-final vitalsProvider = Provider<VitalsProvider>((ref) {
+final mockVitalsProvider = Provider<VitalsProvider>((ref) {
   final provider = MockVitalsProvider();
   ref.onDispose(() => provider.dispose());
   return provider;
 });
 
+final nativeVitalsProvider = Provider<VitalsProvider>((ref) {
+  final provider = NativeVitalsProvider();
+  ref.onDispose(() => provider.dispose());
+  return provider;
+});
+
+/// Riverpod provider for the vitals service.
+/// Resolves explicitly to MockVitalsProvider when simulated mock mode is selected,
+/// or NativeVitalsProvider when physical SDK integration is selected.
+/// NEVER silently falls back.
+final vitalsProvider = Provider<VitalsProvider>((ref) {
+  final privacyAsync = ref.watch(privacySettingsProvider);
+  final useMock = privacyAsync.asData?.value.enableSmartSpectraSimulatedMock ?? true;
+
+  if (useMock) {
+    return ref.watch(mockVitalsProvider);
+  } else {
+    return ref.watch(nativeVitalsProvider);
+  }
+});

@@ -14,7 +14,9 @@ class LocalProfileRepository implements ProfileRepository {
     id: 'user_self',
     fullName: 'Julian Vance',
     email: 'julian.vance@example.com',
-    city: 'Seattle, WA',
+    city: 'Bengaluru',
+    country: 'India',
+    emergencyNumber: '112',
     preferredTimeForCheckIn: '09:00 AM',
     enableGentleReminders: true,
   );
