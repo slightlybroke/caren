@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/profile/data/profile_repository.dart';
 import 'mock_vitals_provider.dart';
 import 'native_vitals_provider.dart';
+import 'session_repository.dart';
 import 'vitals_models.dart';
 
 /// Abstract contract for camera-based wellness vitals measurement.
@@ -15,6 +16,9 @@ abstract class VitalsProvider {
   /// Human-readable provider name (e.g. 'Presage SmartSpectra Android SDK' or 'Simulated Mock Vitals').
   String get providerName;
 
+  /// The active measurement session record, if one is currently in progress.
+  MeasurementSessionRecord? get activeSession;
+
   /// Initializes the provider with required credentials or configs.
   Future<bool> initialize({String? apiKey});
 
@@ -25,26 +29,35 @@ abstract class VitalsProvider {
   Future<void> openAppSettings();
 
   /// Starts a measurement session, streaming real-time frame telemetry.
+  /// Guarantees that at most one measurement session is active at any time.
   Stream<VitalsStreamData> startMeasurement({MeasurementConfig config = const MeasurementConfig()});
 
   /// Completes the ongoing measurement and returns the summarized result.
-  Future<MeasurementResult> stopMeasurement();
+  Future<MeasurementResult> stopMeasurement({
+    bool markInterrupted = false,
+    String? interruptionReason,
+  });
 
   /// Cancels an active measurement session without recording.
-  Future<void> cancelMeasurement();
+  Future<void> cancelMeasurement({String? reason});
 
   /// Releases hardware camera and SDK resources.
   Future<void> dispose();
+
+  /// Queries runtime diagnostics and native SDK connection state.
+  Future<Map<String, dynamic>> getDiagnosticsState();
 }
 
 final mockVitalsProvider = Provider<VitalsProvider>((ref) {
-  final provider = MockVitalsProvider();
+  final sessionRepo = ref.watch(sessionRepositoryProvider);
+  final provider = MockVitalsProvider(sessionRepository: sessionRepo);
   ref.onDispose(() => provider.dispose());
   return provider;
 });
 
 final nativeVitalsProvider = Provider<VitalsProvider>((ref) {
-  final provider = NativeVitalsProvider();
+  final sessionRepo = ref.watch(sessionRepositoryProvider);
+  final provider = NativeVitalsProvider(sessionRepository: sessionRepo);
   ref.onDispose(() => provider.dispose());
   return provider;
 });
@@ -55,7 +68,7 @@ final nativeVitalsProvider = Provider<VitalsProvider>((ref) {
 /// NEVER silently falls back.
 final vitalsProvider = Provider<VitalsProvider>((ref) {
   final privacyAsync = ref.watch(privacySettingsProvider);
-  final useMock = privacyAsync.asData?.value.enableSmartSpectraSimulatedMock ?? true;
+  final useMock = privacyAsync.asData?.value.enableSmartSpectraSimulatedMock ?? false;
 
   if (useMock) {
     return ref.watch(mockVitalsProvider);

@@ -68,6 +68,18 @@ enum MeasurementStatus {
   measurementCancelled,
 }
 
+/// Session-level lifecycle statuses.
+enum MeasurementSessionStatus {
+  planned,
+  starting,
+  active,
+  stopping,
+  interrupted,
+  completed,
+  cancelled,
+  failed,
+}
+
 /// Result returned from camera permission requests.
 class CameraPermissionResult {
   final bool granted;
@@ -83,12 +95,15 @@ class CameraPermissionResult {
 class MeasurementConfig {
   final MeasurementTarget target;
   final int durationSeconds;
+  /// Optional specific session ID if continuing an existing session.
+  final String? sessionId;
   /// Built-in SDK diagnostic telemetry setting (defaults to false in CAREN for privacy)
   final bool enableSdkTelemetry;
 
   const MeasurementConfig({
     this.target = MeasurementTarget.pulseOnly,
     this.durationSeconds = 15,
+    this.sessionId,
     this.enableSdkTelemetry = false,
   });
 }
@@ -106,6 +121,14 @@ class VitalsStreamData {
   final bool isSimulated;
   final double? confidenceScore; // Only if SDK reports it
   final double? stabilityScore; // Only if SDK reports it
+  final String? validationCode; // Genuine SDK ValidationCode (e.g. OK, FACE_NOT_CENTERED, TOO_DARK)
+  final String? validationHint; // Genuine SDK human guidance hint
+  final String? processingStatus; // Genuine SDK ProcessingStatus (IDLE, STARTING, RUNNING, ERROR)
+  final String? sdkErrorCode; // Genuine SDK SmartSpectraError code (e.g. AUTHENTICATION_FAILED)
+  final String? sdkErrorMessage; // Genuine SDK error message
+  final String? sessionId; // Associated session ID
+  final MeasurementSessionStatus? sessionStatus; // Current session state
+  final Map<String, dynamic>? rawTelemetry; // Raw EventChannel packet for developer inspection
 
   const VitalsStreamData({
     required this.status,
@@ -119,9 +142,17 @@ class VitalsStreamData {
     required this.isSimulated,
     this.confidenceScore,
     this.stabilityScore,
+    this.validationCode,
+    this.validationHint,
+    this.processingStatus,
+    this.sdkErrorCode,
+    this.sdkErrorMessage,
+    this.sessionId,
+    this.sessionStatus,
+    this.rawTelemetry,
   });
 
-  factory VitalsStreamData.initial() => const VitalsStreamData(
+  factory VitalsStreamData.initial({String? sessionId}) => VitalsStreamData(
         status: MeasurementStatus.preparingCamera,
         elapsedSeconds: 0,
         instantaneousPulse: null,
@@ -131,7 +162,165 @@ class VitalsStreamData {
         progress: 0.0,
         statusText: 'Preparing camera feed...',
         isSimulated: false,
+        validationCode: null,
+        validationHint: null,
+        processingStatus: 'IDLE',
+        sessionId: sessionId,
+        sessionStatus: MeasurementSessionStatus.planned,
       );
+}
+
+/// Persistent record representing a discrete user measurement session.
+class MeasurementSessionRecord {
+  final String id;
+  final MeasurementTarget target;
+  final DateTime createdAt;
+  final DateTime lastActivityAt;
+  final MeasurementSessionStatus status;
+  final MeasurementResult? result;
+  final DateTime? completedAt;
+  final bool isInterrupted;
+  final String? interruptionReason;
+  final bool userCancelled;
+  final String? errorCode;
+  final String? errorMessage;
+  final int attemptNumber;
+
+  const MeasurementSessionRecord({
+    required this.id,
+    required this.target,
+    required this.createdAt,
+    required this.lastActivityAt,
+    required this.status,
+    this.result,
+    this.completedAt,
+    this.isInterrupted = false,
+    this.interruptionReason,
+    this.userCancelled = false,
+    this.errorCode,
+    this.errorMessage,
+    this.attemptNumber = 1,
+  });
+
+  MeasurementSessionRecord copyWith({
+    String? id,
+    MeasurementTarget? target,
+    DateTime? createdAt,
+    DateTime? lastActivityAt,
+    MeasurementSessionStatus? status,
+    MeasurementResult? result,
+    DateTime? completedAt,
+    bool? isInterrupted,
+    String? interruptionReason,
+    bool? userCancelled,
+    String? errorCode,
+    String? errorMessage,
+    int? attemptNumber,
+  }) {
+    return MeasurementSessionRecord(
+      id: id ?? this.id,
+      target: target ?? this.target,
+      createdAt: createdAt ?? this.createdAt,
+      lastActivityAt: lastActivityAt ?? this.lastActivityAt,
+      status: status ?? this.status,
+      result: result ?? this.result,
+      completedAt: completedAt ?? this.completedAt,
+      isInterrupted: isInterrupted ?? this.isInterrupted,
+      interruptionReason: interruptionReason ?? this.interruptionReason,
+      userCancelled: userCancelled ?? this.userCancelled,
+      errorCode: errorCode ?? this.errorCode,
+      errorMessage: errorMessage ?? this.errorMessage,
+      attemptNumber: attemptNumber ?? this.attemptNumber,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'target': target.name,
+      'createdAt': createdAt.toIso8601String(),
+      'lastActivityAt': lastActivityAt.toIso8601String(),
+      'status': status.name,
+      'result': result != null ? {
+        'target': result!.target.name,
+        'durationSeconds': result!.durationSeconds,
+        'pulseRateBpm': result!.pulseRateBpm,
+        'breathingRateBpm': result!.breathingRateBpm,
+        'hrvRmssdMs': result!.hrvRmssdMs,
+        'qualityScore': result!.qualityScore,
+        'stabilityStatus': result!.stabilityStatus,
+        'timestamp': result!.timestamp.toIso8601String(),
+        'isSimulated': result!.isSimulated,
+        'isSuccessful': result!.isSuccessful,
+        'failureReason': result!.failureReason,
+        'notes': result!.notes,
+      } : null,
+      'completedAt': completedAt?.toIso8601String(),
+      'isInterrupted': isInterrupted,
+      'interruptionReason': interruptionReason,
+      'userCancelled': userCancelled,
+      'errorCode': errorCode,
+      'errorMessage': errorMessage,
+      'attemptNumber': attemptNumber,
+    };
+  }
+
+  factory MeasurementSessionRecord.fromJson(Map<String, dynamic> json) {
+    MeasurementResult? parseResult(Map<dynamic, dynamic>? resMap) {
+      if (resMap == null) return null;
+      final targetStr = resMap['target'] as String? ?? 'pulseOnly';
+      final target = MeasurementTarget.values.firstWhere(
+        (t) => t.name == targetStr,
+        orElse: () => MeasurementTarget.pulseOnly,
+      );
+      return MeasurementResult(
+        target: target,
+        durationSeconds: (resMap['durationSeconds'] as num?)?.toInt() ?? 0,
+        pulseRateBpm: (resMap['pulseRateBpm'] as num?)?.toDouble(),
+        breathingRateBpm: (resMap['breathingRateBpm'] as num?)?.toDouble(),
+        hrvRmssdMs: (resMap['hrvRmssdMs'] as num?)?.toDouble(),
+        qualityScore: (resMap['qualityScore'] as num?)?.toDouble(),
+        stabilityStatus: resMap['stabilityStatus'] as String?,
+        timestamp: resMap['timestamp'] != null
+            ? DateTime.parse(resMap['timestamp'] as String)
+            : DateTime.now(),
+        isSimulated: resMap['isSimulated'] as bool? ?? false,
+        isSuccessful: resMap['isSuccessful'] as bool? ?? false,
+        failureReason: resMap['failureReason'] as String?,
+        notes: resMap['notes'] as String?,
+      );
+    }
+
+    final targetStr = json['target'] as String? ?? 'pulseOnly';
+    final target = MeasurementTarget.values.firstWhere(
+      (t) => t.name == targetStr,
+      orElse: () => MeasurementTarget.pulseOnly,
+    );
+
+    final statusStr = json['status'] as String? ?? 'planned';
+    final status = MeasurementSessionStatus.values.firstWhere(
+      (s) => s.name == statusStr,
+      orElse: () => MeasurementSessionStatus.planned,
+    );
+
+    return MeasurementSessionRecord(
+      id: json['id'] as String,
+      target: target,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      lastActivityAt: DateTime.parse(json['lastActivityAt'] as String),
+      status: status,
+      result: parseResult(json['result'] as Map<dynamic, dynamic>?),
+      completedAt: json['completedAt'] != null
+          ? DateTime.parse(json['completedAt'] as String)
+          : null,
+      isInterrupted: json['isInterrupted'] as bool? ?? false,
+      interruptionReason: json['interruptionReason'] as String?,
+      userCancelled: json['userCancelled'] as bool? ?? false,
+      errorCode: json['errorCode'] as String?,
+      errorMessage: json['errorMessage'] as String?,
+      attemptNumber: (json['attemptNumber'] as num?)?.toInt() ?? 1,
+    );
+  }
 }
 
 /// Summary result generated at the conclusion of a spot-check measurement.

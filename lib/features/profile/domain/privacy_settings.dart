@@ -11,9 +11,27 @@ class PrivacySettings {
     this.shareSelfReportedWellness = true,
     this.shareCameraMeasurementsWithFamily = false,
     this.storeMeasurementsLocallyOnly = true,
-    this.enableSmartSpectraSimulatedMock = true,
+    this.enableSmartSpectraSimulatedMock = false,
     required this.lastUpdated,
   });
+
+  factory PrivacySettings.defaultSettings() => PrivacySettings(
+        shareCheckInStatusWithFamily: true,
+        shareSelfReportedWellness: true,
+        shareCameraMeasurementsWithFamily: false,
+        storeMeasurementsLocallyOnly: true,
+        enableSmartSpectraSimulatedMock: false,
+        lastUpdated: DateTime.now(),
+      );
+
+  Map<String, dynamic> toMap() => {
+        'shareCheckInStatusWithFamily': shareCheckInStatusWithFamily,
+        'shareSelfReportedWellness': shareSelfReportedWellness,
+        'shareCameraMeasurementsWithFamily': shareCameraMeasurementsWithFamily,
+        'storeMeasurementsLocallyOnly': storeMeasurementsLocallyOnly,
+        'enableSmartSpectraSimulatedMock': enableSmartSpectraSimulatedMock,
+        'lastUpdated': lastUpdated.toIso8601String(),
+      };
 
   PrivacySettings copyWith({
     bool? shareCheckInStatusWithFamily,

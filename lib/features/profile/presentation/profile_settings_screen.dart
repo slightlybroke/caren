@@ -7,7 +7,9 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../../services/vitals/vitals_provider.dart';
 import '../data/profile_repository.dart';
+import '../../authentication/presentation/controllers/auth_controller.dart';
 import '../domain/user_profile.dart';
 
 class ProfileSettingsScreen extends ConsumerWidget {
@@ -184,35 +186,56 @@ class ProfileSettingsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Provider Configuration', style: AppTypography.labelLarge),
-                          StatusBadge(label: 'MOCK PROVIDER', type: BadgeType.warning),
-                        ],
+                      privacyAsync.when(
+                        data: (privacy) => Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Provider Mode', style: AppTypography.labelLarge),
+                            StatusBadge(
+                              label: privacy.enableSmartSpectraSimulatedMock ? 'SIMULATED MOCK' : 'NATIVE SMARTSPECTRA',
+                              type: privacy.enableSmartSpectraSimulatedMock ? BadgeType.warning : BadgeType.success,
+                            ),
+                          ],
+                        ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                       const SizedBox(height: AppSpacing.xs),
-                      const Text(
-                        'Running MockVitalsProvider with clearly marked simulated data for UI and automated testing. Android Kotlin Native Bridge is registered for hardware integration in Phase 2.',
-                        style: AppTypography.caption,
+                      privacyAsync.when(
+                        data: (privacy) => Text(
+                          privacy.enableSmartSpectraSimulatedMock
+                              ? 'Running MockVitalsProvider with clearly marked simulated data for UI and automated testing.'
+                              : 'Running NativeVitalsProvider with real Presage SmartSpectra SDK 3.4.0 and CameraX PlatformView.',
+                          style: AppTypography.caption,
+                        ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       privacyAsync.when(
                         data: (privacy) => SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text('Simulated Mock Mode', style: AppTypography.labelMedium),
-                          subtitle: const Text('Enabled for developer testing without physical camera sensor dependency',
+                          subtitle: const Text('Toggle OFF to activate native Android CameraX and SmartSpectra SDK.',
                               style: AppTypography.caption),
                           value: privacy.enableSmartSpectraSimulatedMock,
                           activeThumbColor: AppColors.primary,
-                          onChanged: (val) {
-                            ref.read(profileRepositoryProvider).updatePrivacySettings(
+                          onChanged: (val) async {
+                            await ref.read(privacySettingsProvider.notifier).updateSettings(
                                   privacy.copyWith(enableSmartSpectraSimulatedMock: val),
                                 );
+                            ref.invalidate(vitalsProvider);
                           },
                         ),
                         loading: () => const SizedBox.shrink(),
                         error: (_, _) => const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      CarenButton(
+                        label: 'Developer Diagnostics & SDK Console',
+                        icon: Icons.bug_report_outlined,
+                        variant: CarenButtonVariant.outline,
+                        onPressed: () => context.push('/diagnostics'),
                       ),
                     ],
                   ),
@@ -223,8 +246,11 @@ class ProfileSettingsScreen extends ConsumerWidget {
                 CarenButton(
                   label: 'Sign Out',
                   variant: CarenButtonVariant.outline,
-                  onPressed: () {
-                    context.go('/login');
+                  onPressed: () async {
+                    await ref.read(authNotifierProvider.notifier).signOut();
+                    if (context.mounted) {
+                      context.go('/login');
+                    }
                   },
                 ),
                 const SizedBox(height: AppSpacing.xl),

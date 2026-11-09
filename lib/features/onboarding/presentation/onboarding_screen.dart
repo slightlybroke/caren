@@ -52,12 +52,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: AppSpacing.screenPadding,
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: () => context.go('/dashboard'),
-                  child: Text('Skip', style: AppTypography.labelLarge.copyWith(color: AppColors.textSecondary)),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.bug_report_outlined, size: 20, color: AppColors.textSecondary),
+                    tooltip: 'Developer Diagnostics',
+                    onPressed: () => context.push('/diagnostics'),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/family'),
+                    child: Text('Skip', style: AppTypography.labelLarge.copyWith(color: AppColors.textSecondary)),
+                  ),
+                ],
               ),
               Expanded(
                 child: PageView.builder(

@@ -8,6 +8,8 @@ import '../../../core/widgets/caren_app_bar.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../authentication/data/auth_repository.dart';
+import '../../profile/data/profile_repository.dart';
 import '../data/family_repository.dart';
 import '../domain/family_member.dart';
 
@@ -17,10 +19,30 @@ class FamilyDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final familyAsync = ref.watch(familyMembersProvider);
+    final authUser = ref.watch(currentUserProvider);
+    final profileAsync = ref.watch(userProfileProvider);
+    final userProfile = profileAsync.asData?.value;
+
+    String name = '';
+    if (userProfile != null && userProfile.fullName.trim().isNotEmpty) {
+      name = userProfile.fullName.trim();
+    } else if (authUser != null) {
+      final dn = authUser.displayName;
+      if (dn != null && dn.trim().isNotEmpty) {
+        name = dn.trim();
+      } else if (authUser.email.isNotEmpty) {
+        name = authUser.email.split('@').first;
+      }
+    }
+
+    final hour = DateTime.now().hour;
+    final timeGreeting = hour < 12 ? 'Good morning' : (hour < 17 ? 'Good afternoon' : 'Good evening');
+    final greetingText = name.isNotEmpty ? '$timeGreeting, $name' : timeGreeting;
 
     return Scaffold(
       appBar: CarenAppBar(
         title: 'Family',
+        showProfileButton: true,
         actions: [
           IconButton(
             tooltip: 'All Family Members',
@@ -37,33 +59,46 @@ class FamilyDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Daily Check-In Prompt Banner
-              CarenCard(
-                backgroundColor: AppColors.secondaryContainer,
-                borderColor: AppColors.secondaryLight,
+              // Dynamic Welcome Header
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, AppColors.primaryLight],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.wb_sunny_outlined, color: AppColors.secondary, size: 24),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          'Your Daily Check-In',
-                          style: AppTypography.titleMedium.copyWith(color: AppColors.onSecondary),
+                        Flexible(
+                          child: Text(
+                            greetingText,
+                            style: AppTypography.titleLarge.copyWith(color: Colors.white),
+                          ),
+                        ),
+                        const StatusBadge(
+                          label: 'Care, closer',
+                          type: BadgeType.neutral,
                         ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Let your loved ones know how you are feeling today with a 30-second voluntary update.',
-                      style: AppTypography.bodyMedium.copyWith(color: AppColors.onSecondary),
+                      'Your daily wellness check-in keeps your family circle connected with peace of mind.',
+                      style: AppTypography.bodyMedium.copyWith(color: AppColors.secondaryContainer),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     CarenButton(
-                      label: 'Complete Check-In',
-                      onPressed: () => context.push('/family/check-in'),
+                      label: 'Start Today’s Check-In',
                       icon: Icons.check_circle_outline,
+                      variant: CarenButtonVariant.secondary,
+                      onPressed: () => context.push('/family/check-in'),
                     ),
                   ],
                 ),
@@ -92,7 +127,7 @@ class FamilyDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // Family Circle Members
+              // Family Circle Members Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -102,16 +137,38 @@ class FamilyDashboardScreen extends ConsumerWidget {
                   ),
                   TextButton(
                     onPressed: () => context.push('/family/members'),
-                    child: const Text('Manage'),
+                    child: const Text('Manage Circle'),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
 
+              // Family Circle Members List / Empty State
               familyAsync.when(
                 data: (members) {
                   if (members.isEmpty) {
-                    return const Center(child: Text('No family members invited yet.'));
+                    return CarenCard(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.group_add_outlined, size: 48, color: AppColors.primary),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text('Your Family Circle is Empty', style: AppTypography.titleMedium),
+                          const SizedBox(height: AppSpacing.xs),
+                          const Text(
+                            'Invite parents, children, or loved ones to share voluntary daily wellness updates.',
+                            style: AppTypography.caption,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          CarenButton(
+                            label: 'Invite Family Member',
+                            icon: Icons.person_add_alt_1,
+                            variant: CarenButtonVariant.outline,
+                            onPressed: () => context.push('/family/members'),
+                          ),
+                        ],
+                      ),
+                    );
                   }
                   return ListView.separated(
                     shrinkWrap: true,
@@ -150,66 +207,71 @@ class _FamilyMemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = member.checkInStatus == CheckInStatus.completedToday;
-
     return CarenCard(
       onTap: () => context.push('/family/member/${member.id}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: isCompleted ? AppColors.secondaryContainer : AppColors.surfaceVariant,
-                child: Text(
-                  member.name.split(' ').map((n) => n[0]).take(2).join(),
-                  style: AppTypography.titleMedium.copyWith(
-                    color: isCompleted ? AppColors.secondary : AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          CircleAvatar(
+            backgroundColor: AppColors.primaryLight.withAlpha(50),
+            foregroundColor: AppColors.primary,
+            child: Text(
+              member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(member.name, style: AppTypography.titleMedium),
-                    Text(
-                      '${member.relationship} • ${member.city}',
-                      style: AppTypography.bodyMedium.copyWith(color: AppColors.textMuted),
-                    ),
+                    Text(member.name, style: AppTypography.titleSmall),
+                    _buildStatusBadge(member.checkInStatus),
                   ],
                 ),
-              ),
-              StatusBadge(
-                label: isCompleted ? 'Checked in' : 'Pending today',
-                type: isCompleted ? BadgeType.success : BadgeType.warning,
-                icon: isCompleted ? Icons.check_circle : Icons.schedule,
-              ),
-            ],
-          ),
-          if (member.lastWellnessSummary != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            const Divider(),
-            const SizedBox(height: AppSpacing.xs),
-            Row(
-              children: [
-                const Icon(Icons.chat_bubble_outline_rounded, size: 16, color: AppColors.textMuted),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: Text(
-                    member.lastWellnessSummary!,
-                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                  ),
+                const SizedBox(height: 2),
+                Text(
+                  '${member.relationship} • ${member.city}',
+                  style: AppTypography.caption,
                 ),
-                const Icon(Icons.chevron_right, size: 18, color: AppColors.textMuted),
+                if (member.lastCheckInTime != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Last check-in: ${_formatTimeAgo(member.lastCheckInTime!)}',
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
               ],
             ),
-          ],
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          const Icon(Icons.chevron_right, color: AppColors.textSecondary),
         ],
       ),
     );
   }
-}
 
+  Widget _buildStatusBadge(CheckInStatus status) {
+    switch (status) {
+      case CheckInStatus.completedToday:
+        return const StatusBadge(label: 'Checked In', type: BadgeType.success);
+      case CheckInStatus.pendingToday:
+        return const StatusBadge(label: 'Pending', type: BadgeType.warning);
+      case CheckInStatus.missedYesterday:
+        return const StatusBadge(label: 'Not checked in', type: BadgeType.neutral);
+    }
+  }
+
+  String _formatTimeAgo(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}h ago';
+    } else {
+      return '${diff.inDays}d ago';
+    }
+  }
+}

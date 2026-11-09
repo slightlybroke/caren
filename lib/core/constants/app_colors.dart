@@ -42,6 +42,10 @@ class AppColors {
   static const Color infoContainer = Color(0xFFE9F3F8);
   static const Color danger = Color(0xFFB54C47);
   static const Color dangerContainer = Color(0xFFFBF0EF);
+  static const Color error = danger;
+  static const Color accent = secondary;
+  static const Color accentDark = primaryDark;
+  static const Color accentLight = secondaryLight;
 
   // Simulation & Mock Marker (distinct amber badge)
   static const Color simulatedBannerBg = Color(0xFFFFF3CD);

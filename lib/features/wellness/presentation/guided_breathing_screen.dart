@@ -1,59 +1,69 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
-import '../../../core/widgets/simulated_banner.dart';
-import '../../../core/widgets/status_badge.dart';
-import '../../../services/vitals/vitals_models.dart';
-import '../../../services/vitals/vitals_provider.dart';
+import '../../../services/speech/spoken_guidance_service.dart';
 import '../data/wellness_repository.dart';
 import '../domain/breathing_session.dart';
 
 class GuidedBreathingScreen extends ConsumerStatefulWidget {
+  static const int minSessionDurationMinutes = 2;
+  static const int maxSessionDurationMinutes = 60;
+
   final int initialDurationMinutes;
 
-  const GuidedBreathingScreen({
-    super.key,
-    this.initialDurationMinutes = 3,
-  });
+  const GuidedBreathingScreen({super.key, this.initialDurationMinutes = 2});
 
   @override
-  ConsumerState<GuidedBreathingScreen> createState() => _GuidedBreathingScreenState();
+  ConsumerState<GuidedBreathingScreen> createState() =>
+      _GuidedBreathingScreenState();
 }
 
 class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late int _durationMinutes;
+  bool _isCustomDuration = false;
   BreathingCadence _cadence = BreathingCadence.gentlePaced;
 
-  // Session phase: setup -> preCheck -> breathing -> postCheck -> summary
+  // Session phase: 'setup' -> 'breathing' -> 'summary'
   String _phase = 'setup';
   Timer? _sessionTimer;
   int _secondsRemaining = 0;
   bool _isPaused = false;
+  bool _isMuted = false;
 
-  // Breathing animation (4s inhale, 6s exhale)
+  // Accurate wall-clock timing across app lifecycle
+  DateTime? _sessionStartWallClock;
+  int _secondsAlreadyElapsed = 0;
+
+  // Breathing animation & cues
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
-  String _breathPrompt = 'Inhale gently...';
+  String _breathPrompt = 'Prepare to breathe...';
+  String _lastSpokenPhase = '';
 
-  // Optional measurements
-  MeasurementResult? _preVitals;
-  MeasurementResult? _postVitals;
-  bool _isMeasuringVitals = false;
-  VitalsStreamData? _vitalsData;
-  StreamSubscription<VitalsStreamData>? _vitalsSub;
+  late SpokenGuidanceService _speechService;
 
   @override
   void initState() {
     super.initState();
-    _durationMinutes = widget.initialDurationMinutes;
+    WidgetsBinding.instance.addObserver(this);
+    _speechService = ref.read(spokenGuidanceServiceProvider);
+    _durationMinutes = widget.initialDurationMinutes.clamp(
+      GuidedBreathingScreen.minSessionDurationMinutes,
+      GuidedBreathingScreen.maxSessionDurationMinutes,
+    );
+    if (![2, 5, 15].contains(_durationMinutes)) {
+      _isCustomDuration = true;
+    }
     _secondsRemaining = _durationMinutes * 60;
 
     _animController = AnimationController(
@@ -61,132 +71,187 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
       duration: const Duration(seconds: 10), // 4s inhale + 6s exhale
     );
 
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.75, end: 1.2), weight: 40), // Inhale 40%
-      TweenSequenceItem(tween: Tween(begin: 1.2, end: 0.75), weight: 60), // Exhale 60%
-    ]).animate(CurvedAnimation(parent: _animController, curve: Curves.easeInOut));
+    _scaleAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween(begin: 0.8, end: 1.25),
+            weight: 40,
+          ), // Inhale
+          TweenSequenceItem(
+            tween: Tween(begin: 1.25, end: 0.8),
+            weight: 60,
+          ), // Exhale
+        ]).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+        );
 
-    _animController.addListener(() {
-      if (!mounted) return;
-      if (_animController.value < 0.4) {
-        if (_breathPrompt != 'Inhale gently...') {
-          setState(() => _breathPrompt = 'Inhale gently...');
-        }
-      } else {
-        if (_breathPrompt != 'Exhale slowly...') {
-          setState(() => _breathPrompt = 'Exhale slowly...');
-        }
-      }
-    });
-
+    _animController.addListener(_onAnimationTick);
     _animController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _animController.repeat();
+      if (status == AnimationStatus.completed &&
+          _phase == 'breathing' &&
+          !_isPaused) {
+        _animController.forward(from: 0.0);
       }
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _phase == 'breathing' &&
+        !_isPaused) {
+      _syncRemainingTime();
+    }
+  }
+
+  void _syncRemainingTime() {
+    if (_sessionStartWallClock == null) return;
+    final elapsedNow = DateTime.now()
+        .difference(_sessionStartWallClock!)
+        .inSeconds;
+    final totalElapsed = _secondsAlreadyElapsed + elapsedNow;
+    final totalTargetSeconds = _durationMinutes * 60;
+    final remaining = (totalTargetSeconds - totalElapsed).clamp(
+      0,
+      totalTargetSeconds,
+    );
+
+    if (mounted) {
+      setState(() {
+        _secondsRemaining = remaining;
+      });
+      if (_secondsRemaining <= 0) {
+        _finishSession();
+      }
+    }
+  }
+
+  void _onAnimationTick() {
+    if (!mounted || _phase != 'breathing' || _isPaused) return;
+
+    final progress = _animController.value;
+
+    if (progress < 0.40) {
+      // Inhale phase
+      if (_breathPrompt != 'Breathe in slowly') {
+        setState(() => _breathPrompt = 'Breathe in slowly');
+        if (_lastSpokenPhase != 'inhale') {
+          _lastSpokenPhase = 'inhale';
+          _speechService.speak('Breathe in slowly');
+        }
+      }
+    } else if (progress >= 0.40 && progress < 0.45) {
+      // Gentle transition hold
+      if (_breathPrompt != 'Hold gently') {
+        setState(() => _breathPrompt = 'Hold gently');
+        if (_lastSpokenPhase != 'hold') {
+          _lastSpokenPhase = 'hold';
+          _speechService.speak('Hold gently');
+        }
+      }
+    } else if (progress >= 0.45 && progress < 0.90) {
+      // Exhale phase
+      if (_breathPrompt != 'Now breathe out slowly') {
+        setState(() => _breathPrompt = 'Now breathe out slowly');
+        if (_lastSpokenPhase != 'exhale') {
+          _lastSpokenPhase = 'exhale';
+          _speechService.speak('Now breathe out slowly');
+        }
+      }
+    } else {
+      // Relax / rest phase
+      if (_breathPrompt != 'Let your body relax') {
+        setState(() => _breathPrompt = 'Let your body relax');
+        if (_lastSpokenPhase != 'relax') {
+          _lastSpokenPhase = 'relax';
+          _speechService.speak('Let your body relax');
+        }
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sessionTimer?.cancel();
-    _vitalsSub?.cancel();
     _animController.dispose();
+    // Immediate voice cancellation on exit using cached service reference
+    _speechService.stop();
     super.dispose();
   }
 
-  void _startBreathing() {
+  void _toggleMute() {
+    final newMuted = !_isMuted;
+    _speechService.setMuted(newMuted);
+    setState(() {
+      _isMuted = newMuted;
+    });
+  }
+
+  Future<void> _startBreathing() async {
+    _speechService.setMuted(_isMuted);
+
     setState(() {
       _phase = 'breathing';
       _isPaused = false;
+      _secondsAlreadyElapsed = 0;
+      _sessionStartWallClock = DateTime.now();
       _secondsRemaining = _durationMinutes * 60;
+      _breathPrompt = 'Find a comfortable position...';
+      _lastSpokenPhase = 'intro';
     });
 
+    // Opening spoken guidance
+    await _speechService.speak(
+      "Let's begin. Find a comfortable position and relax your shoulders.",
+    );
+
+    if (!mounted || _phase != 'breathing') return;
+
     _animController.forward(from: 0.0);
+
     _sessionTimer?.cancel();
-    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _sessionTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (!mounted) return;
       if (!_isPaused) {
-        setState(() {
-          if (_secondsRemaining > 0) {
-            _secondsRemaining--;
-          } else {
-            timer.cancel();
-            _animController.stop();
-            _promptPostCheck();
-          }
-        });
+        _syncRemainingTime();
       }
     });
   }
 
-  void _promptPostCheck() {
-    setState(() => _phase = 'postCheck');
-  }
-
-  void _runVitalsSpotCheck({required bool isPre}) async {
-    final provider = ref.read(vitalsProvider);
+  void _togglePause() {
+    final speechService = ref.read(spokenGuidanceServiceProvider);
     setState(() {
-      _isMeasuringVitals = true;
-      _vitalsData = null;
+      _isPaused = !_isPaused;
+      if (_isPaused) {
+        _animController.stop();
+        speechService.stop();
+        if (_sessionStartWallClock != null) {
+          _secondsAlreadyElapsed += DateTime.now()
+              .difference(_sessionStartWallClock!)
+              .inSeconds;
+          _sessionStartWallClock = null;
+        }
+      } else {
+        _sessionStartWallClock = DateTime.now();
+        _animController.forward();
+      }
     });
-
-    final permResult = await provider.requestCameraPermission();
-    if (!permResult.granted) {
-      if (mounted) setState(() => _isMeasuringVitals = false);
-      return;
-    }
-
-    final stream = provider.startMeasurement(
-      config: const MeasurementConfig(
-        target: MeasurementTarget.pulseOnly,
-        durationSeconds: 15, // Meets 12s confidence window
-      ),
-    );
-
-    _vitalsSub = stream.listen(
-      (data) {
-        if (mounted) {
-          setState(() => _vitalsData = data);
-          if (data.progress >= 1.0) {
-            _finishVitalsCheck(isPre: isPre);
-          }
-        }
-      },
-      onError: (_) {
-        if (mounted) setState(() => _isMeasuringVitals = false);
-      },
-    );
   }
 
-  void _finishVitalsCheck({required bool isPre}) async {
-    _vitalsSub?.cancel();
-    final provider = ref.read(vitalsProvider);
-    final result = await provider.stopMeasurement();
-    if (mounted) {
-      setState(() {
-        _isMeasuringVitals = false;
-        if (isPre) {
-          _preVitals = result;
-          _startBreathing();
-        } else {
-          _postVitals = result;
-          _finishSession();
-        }
-      });
-    }
-  }
-
-  void _finishSession() async {
+  Future<void> _finishSession() async {
     _sessionTimer?.cancel();
     _animController.stop();
+
+    _speechService.speak(
+      'Your session is complete. Take a moment before returning to your day.',
+    );
 
     final session = BreathingSession(
       id: 'sess_${DateTime.now().millisecondsSinceEpoch}',
       startTime: DateTime.now().subtract(Duration(minutes: _durationMinutes)),
       durationMinutes: _durationMinutes,
       cadence: _cadence,
-      preSessionVitals: _preVitals,
-      postSessionVitals: _postVitals,
       personalReflection: 'Completed relaxation session.',
       isCompleted: true,
     );
@@ -197,11 +262,117 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
     }
   }
 
+  Future<void> _showCustomDurationDialog() async {
+    final textController = TextEditingController(text: '$_durationMinutes');
+    String? validationMessage;
+
+    final selectedMinutes = await showDialog<int>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Custom Session Duration'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Enter desired duration between ${GuidedBreathingScreen.minSessionDurationMinutes} and ${GuidedBreathingScreen.maxSessionDurationMinutes} minutes:',
+                  style: AppTypography.bodyMedium,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: textController,
+                  keyboardType: TextInputType.number,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    suffixText: 'mins',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                  ),
+                ),
+                if (validationMessage != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    validationMessage!,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.danger,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final text = textController.text.trim();
+                  final val = int.tryParse(text);
+                  if (val == null) {
+                    setDialogState(() {
+                      validationMessage =
+                          'Please enter a valid whole number of minutes.';
+                    });
+                    return;
+                  }
+                  if (val < GuidedBreathingScreen.minSessionDurationMinutes) {
+                    setDialogState(() {
+                      validationMessage =
+                          'Your session must be at least ${GuidedBreathingScreen.minSessionDurationMinutes} minutes long.';
+                    });
+                    return;
+                  }
+                  if (val > GuidedBreathingScreen.maxSessionDurationMinutes) {
+                    textController.text =
+                        '${GuidedBreathingScreen.maxSessionDurationMinutes}';
+                    setDialogState(() {
+                      validationMessage =
+                          "${GuidedBreathingScreen.maxSessionDurationMinutes} minutes is the longest session you can choose. We've set it to the maximum.";
+                    });
+                    return;
+                  }
+                  Navigator.pop(ctx, val);
+                },
+                child: const Text('Set Duration'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (selectedMinutes != null && mounted) {
+      final clamped = selectedMinutes.clamp(
+        GuidedBreathingScreen.minSessionDurationMinutes,
+        GuidedBreathingScreen.maxSessionDurationMinutes,
+      );
+      setState(() {
+        _durationMinutes = clamped;
+        _isCustomDuration = true;
+        _secondsRemaining = clamped * 60;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Guided Breathing'),
+        actions: [
+          IconButton(
+            tooltip: _isMuted ? 'Unmute voice guidance' : 'Mute voice guidance',
+            icon: Icon(
+              _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+            ),
+            onPressed: _toggleMute,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -218,8 +389,6 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
         return _buildSetupView();
       case 'breathing':
         return _buildBreathingView();
-      case 'postCheck':
-        return _buildPostCheckView();
       case 'summary':
         return _buildSummaryView();
       default:
@@ -235,38 +404,43 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
           Text('Choose Session Duration', style: AppTypography.titleLarge),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Gentle breathing calms the nervous system. Take whatever time feels comfortable right now.',
+            'Gentle breathing calms the autonomic nervous system. Works standalone without requiring camera access.',
             style: AppTypography.bodyMedium,
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // Duration Selector
+          // Duration Selector: 2m, 5m, 15m, and Custom
           Row(
-            children: [2, 3, 5, 10].map((mins) {
-              final isSelected = _durationMinutes == mins;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: ChoiceChip(
-                    label: Text('${mins}m'),
-                    selected: isSelected,
-                    selectedColor: AppColors.primaryContainer,
-                    labelStyle: TextStyle(
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                    onSelected: (val) {
-                      if (val) {
-                        setState(() {
-                          _durationMinutes = mins;
-                          _secondsRemaining = mins * 60;
-                        });
-                      }
-                    },
+            children: [
+              _buildDurationChip(2, '2m'),
+              const SizedBox(width: 8),
+              _buildDurationChip(5, '5m'),
+              const SizedBox(width: 8),
+              _buildDurationChip(15, '15m'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  label: Text(
+                    _isCustomDuration
+                        ? '${_durationMinutes}m (Custom)'
+                        : 'Custom',
                   ),
+                  selected: _isCustomDuration,
+                  selectedColor: AppColors.primaryContainer,
+                  labelStyle: TextStyle(
+                    color: _isCustomDuration
+                        ? AppColors.primary
+                        : AppColors.textPrimary,
+                    fontWeight: _isCustomDuration
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ),
+                  onSelected: (val) {
+                    _showCustomDurationDialog();
+                  },
                 ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
 
@@ -274,8 +448,11 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
           Text('Breathing Rhythm', style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.xs),
           CarenCard(
-            onTap: () => setState(() => _cadence = BreathingCadence.gentlePaced),
-            borderColor: _cadence == BreathingCadence.gentlePaced ? AppColors.primary : AppColors.border,
+            onTap: () =>
+                setState(() => _cadence = BreathingCadence.gentlePaced),
+            borderColor: _cadence == BreathingCadence.gentlePaced
+                ? AppColors.primary
+                : AppColors.border,
             backgroundColor: _cadence == BreathingCadence.gentlePaced
                 ? AppColors.primaryContainer.withAlpha(50)
                 : AppColors.surface,
@@ -292,8 +469,14 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Gentle Paced (4s Inhale, 6s Exhale)', style: AppTypography.labelLarge),
-                      Text('Extended exhalations encourage relaxation response.', style: AppTypography.caption),
+                      Text(
+                        'Gentle Paced (4s Inhale, 6s Exhale)',
+                        style: AppTypography.labelLarge,
+                      ),
+                      Text(
+                        'Extended exhalations encourage parasympathetic relaxation.',
+                        style: AppTypography.caption,
+                      ),
                     ],
                   ),
                 ),
@@ -302,8 +485,11 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
           ),
           const SizedBox(height: AppSpacing.xs),
           CarenCard(
-            onTap: () => setState(() => _cadence = BreathingCadence.coherentRelaxation),
-            borderColor: _cadence == BreathingCadence.coherentRelaxation ? AppColors.primary : AppColors.border,
+            onTap: () =>
+                setState(() => _cadence = BreathingCadence.coherentRelaxation),
+            borderColor: _cadence == BreathingCadence.coherentRelaxation
+                ? AppColors.primary
+                : AppColors.border,
             backgroundColor: _cadence == BreathingCadence.coherentRelaxation
                 ? AppColors.primaryContainer.withAlpha(50)
                 : AppColors.surface,
@@ -320,8 +506,14 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Coherent Flow (5s Inhale, 5s Exhale)', style: AppTypography.labelLarge),
-                      Text('Balanced rhythm for sustained focus and calm.', style: AppTypography.caption),
+                      Text(
+                        'Coherent Flow (5s Inhale, 5s Exhale)',
+                        style: AppTypography.labelLarge,
+                      ),
+                      Text(
+                        'Balanced cadence for heart-rate variability and calm focus.',
+                        style: AppTypography.caption,
+                      ),
                     ],
                   ),
                 ),
@@ -330,252 +522,200 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // Optional Pre-check
-          CarenCard(
-            backgroundColor: AppColors.surfaceVariant,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Spoken Guidance Info Box
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.videocam_outlined, color: AppColors.primary),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text('Optional Pre-Session Spot Check', style: AppTypography.titleMedium),
-                  ],
+                Icon(
+                  _isMuted
+                      ? Icons.volume_off_rounded
+                      : Icons.record_voice_over_outlined,
+                  color: AppColors.primary,
+                  size: 22,
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                const Text(
-                  'Record pulse before starting to observe how gentle breathing affects your body.',
-                  style: AppTypography.bodyMedium,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                if (_isMeasuringVitals) ...[
-                  const SimulatedBanner(),
-                  const SizedBox(height: AppSpacing.sm),
-                  LinearProgressIndicator(value: _vitalsData?.progress ?? 0.0),
-                ] else ...[
-                  CarenButton(
-                    label: 'Check Pulse First (15s • 12s window)',
-                    variant: CarenButtonVariant.outline,
-                    onPressed: () => _runVitalsSpotCheck(isPre: true),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    _isMuted
+                        ? 'Spoken guidance is currently muted. You can unmute anytime.'
+                        : 'Spoken guidance will lead each breath. You can mute at any time using the speaker icon.',
+                    style: AppTypography.caption,
                   ),
-                ],
+                ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
 
+          // Standalone Start Action
           CarenButton(
-            label: 'Begin Breathing Session',
-            icon: Icons.play_arrow_rounded,
+            label: 'Start Breathing Session (${_durationMinutes}m)',
+            icon: Icons.spa_rounded,
             onPressed: _startBreathing,
           ),
+          const SizedBox(height: AppSpacing.md),
         ],
       ),
+    );
+  }
+
+  Widget _buildDurationChip(int mins, String label) {
+    final isSelected = !_isCustomDuration && _durationMinutes == mins;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AppColors.primaryContainer,
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.primary : AppColors.textPrimary,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      onSelected: (val) {
+        if (val) {
+          setState(() {
+            _isCustomDuration = false;
+            _durationMinutes = mins;
+            _secondsRemaining = mins * 60;
+          });
+        }
+      },
     );
   }
 
   Widget _buildBreathingView() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // Top Timer & Controls
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '$_durationMinutes min Session',
-              style: AppTypography.titleMedium.copyWith(color: AppColors.textMuted),
+              AppFormatters.formatTimer(_secondsRemaining),
+              style: AppTypography.displaySmall.copyWith(
+                color: AppColors.primaryDark,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            Text(
-              AppFormatters.formatDurationMinutes(_secondsRemaining),
-              style: AppTypography.displayMedium.copyWith(color: AppColors.primary),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: _isMuted ? 'Unmute' : 'Mute',
+                  icon: Icon(
+                    _isMuted
+                        ? Icons.volume_off_rounded
+                        : Icons.volume_up_rounded,
+                  ),
+                  onPressed: _toggleMute,
+                ),
+                IconButton(
+                  tooltip: _isPaused ? 'Resume' : 'Pause',
+                  icon: Icon(
+                    _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                  ),
+                  onPressed: _togglePause,
+                ),
+                IconButton(
+                  tooltip: 'End Session Early',
+                  icon: const Icon(Icons.stop_rounded),
+                  onPressed: _finishSession,
+                ),
+              ],
             ),
           ],
         ),
-        Center(
-          child: Column(
-            children: [
-              AnimatedBuilder(
-                animation: _scaleAnimation,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: Container(
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.secondaryLight.withAlpha(90),
-                            AppColors.primary.withAlpha(40),
-                          ],
-                        ),
-                        border: Border.all(
-                          color: AppColors.primary,
-                          width: 3.0,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _breathPrompt,
-                          textAlign: TextAlign.center,
-                          style: AppTypography.titleMedium.copyWith(
-                            color: AppColors.primaryDark,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+        const Spacer(),
+
+        // Animated Breathing Orb
+        AnimatedBuilder(
+          animation: _animController,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _isPaused ? 1.0 : _scaleAnimation.value,
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.primary.withAlpha(180),
+                      AppColors.primaryLight.withAlpha(100),
+                      AppColors.surfaceVariant.withAlpha(20),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withAlpha(60),
+                      blurRadius: 30,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Text(
+                      _breathPrompt,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              const Text(
-                'Focus gently on your breath flowing in and out.',
-                style: AppTypography.bodyMedium,
-              ),
-            ],
-          ),
+            );
+          },
         ),
-        Row(
-          children: [
-            Expanded(
-              child: CarenButton(
-                label: _isPaused ? 'Resume' : 'Pause',
-                variant: CarenButtonVariant.outline,
-                onPressed: () {
-                  setState(() {
-                    _isPaused = !_isPaused;
-                    if (_isPaused) {
-                      _animController.stop();
-                    } else {
-                      _animController.repeat();
-                    }
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: CarenButton(
-                label: 'Finish Early',
-                variant: CarenButtonVariant.text,
-                onPressed: _promptPostCheck,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+        const Spacer(),
 
-  Widget _buildPostCheckView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.check_circle_outline_rounded, color: AppColors.secondary, size: 56),
-        const SizedBox(height: AppSpacing.md),
-        Text('Session Complete', style: AppTypography.displayMedium),
-        const SizedBox(height: AppSpacing.xs),
-        const Text(
-          'Take a moment to notice how you feel. Would you like to record a quick post-session spot check?',
-          textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium,
+        // Status Card
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          ),
+          child: Text(
+            _isPaused
+                ? 'Session paused. Tap play to resume.'
+                : 'Follow the circle rhythm • Breathe naturally without strain',
+            style: AppTypography.caption,
+          ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        if (_isMeasuringVitals) ...[
-          const SimulatedBanner(),
-          const SizedBox(height: AppSpacing.md),
-          LinearProgressIndicator(value: _vitalsData?.progress ?? 0.0),
-          const SizedBox(height: AppSpacing.sm),
-          Text(_vitalsData?.statusText ?? 'Measuring...', style: AppTypography.caption),
-        ] else ...[
-          CarenButton(
-            label: 'Take 15s Post-Session Check (12s window)',
-            icon: Icons.camera_alt_outlined,
-            onPressed: () => _runVitalsSpotCheck(isPre: false),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          CarenButton(
-            label: 'Skip and View Summary',
-            variant: CarenButtonVariant.text,
-            onPressed: _finishSession,
-          ),
-        ],
+        const SizedBox(height: AppSpacing.lg),
       ],
     );
   }
 
   Widget _buildSummaryView() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Session Summary', style: AppTypography.displayMedium),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Your breathing session has been saved to your private personal history.',
-            style: AppTypography.bodyMedium,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          if (_postVitals?.isSimulated == true || _preVitals?.isSimulated == true) ...[
-            const SimulatedBanner(),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          CarenCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Completed Duration', style: AppTypography.titleMedium),
-                    StatusBadge(label: '$_durationMinutes minutes', type: BadgeType.success),
-                  ],
-                ),
-                if (_preVitals != null || _postVitals != null) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  const Divider(),
-                  const SizedBox(height: AppSpacing.sm),
-                  const Text('Observed Spot Comparison', style: AppTypography.labelLarge),
-                  const SizedBox(height: AppSpacing.xs),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
-                        children: [
-                          const Text('Before Session', style: AppTypography.caption),
-                          Text(
-                            _preVitals?.pulseRateBpm != null ? '${_preVitals!.pulseRateBpm!.toInt()} bpm' : '--',
-                            style: AppTypography.titleLarge,
-                          ),
-                        ],
-                      ),
-                      const Icon(Icons.arrow_forward_rounded, color: AppColors.textMuted),
-                      Column(
-                        children: [
-                          const Text('After Session', style: AppTypography.caption),
-                          Text(
-                            _postVitals?.pulseRateBpm != null ? '${_postVitals!.pulseRateBpm!.toInt()} bpm' : '--',
-                            style: AppTypography.titleLarge.copyWith(color: AppColors.primary),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          CarenButton(
-            label: 'Return to Me Dashboard',
-            onPressed: () => context.go('/me'),
-          ),
-        ],
-      ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(
+          Icons.check_circle_rounded,
+          color: AppColors.primary,
+          size: 64,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text('Session Complete', style: AppTypography.headlineMedium),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'You completed $_durationMinutes minutes of mindful breathing.',
+          style: AppTypography.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        CarenButton(label: 'Back to Wellness', onPressed: () => context.pop()),
+      ],
     );
   }
 }
-

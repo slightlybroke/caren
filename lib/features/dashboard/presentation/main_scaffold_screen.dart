@@ -45,9 +45,9 @@ class MainScaffoldScreen extends StatelessWidget {
               label: 'Me',
             ),
             NavigationDestination(
-              icon: Icon(Icons.shield_outlined),
-              selectedIcon: Icon(Icons.shield_rounded, color: AppColors.primary),
-              label: 'Assist',
+              icon: Icon(Icons.emergency_outlined),
+              selectedIcon: Icon(Icons.emergency_rounded, color: AppColors.danger),
+              label: 'Emergency',
             ),
           ],
         ),

@@ -19,5 +19,7 @@ class AppFormatters {
     final remainingSeconds = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
+
+  static String formatTimer(int seconds) => formatDurationMinutes(seconds);
 }
 

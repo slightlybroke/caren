@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -8,8 +9,10 @@ import '../../../core/widgets/caren_app_bar.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../authentication/data/auth_repository.dart';
 import '../../family/data/family_repository.dart';
 import '../../family/domain/family_member.dart';
+import '../../profile/data/profile_repository.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -17,12 +20,32 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final familyAsync = ref.watch(familyMembersProvider);
+    final authUser = ref.watch(currentUserProvider);
+    final profileAsync = ref.watch(userProfileProvider);
+    final userProfile = profileAsync.asData?.value;
+
+    String name = '';
+    if (userProfile != null && userProfile.fullName.trim().isNotEmpty) {
+      name = userProfile.fullName.trim();
+    } else if (authUser != null) {
+      final dn = authUser.displayName;
+      if (dn != null && dn.trim().isNotEmpty) {
+        name = dn.trim();
+      } else if (authUser.email.isNotEmpty) {
+        name = authUser.email.split('@').first;
+      }
+    }
+
+    final hour = DateTime.now().hour;
+    final timeGreeting = hour < 12
+        ? 'Good morning'
+        : (hour < 17 ? 'Good afternoon' : 'Good evening');
+    final greetingText = name.isNotEmpty
+        ? '$timeGreeting, $name'
+        : timeGreeting;
 
     return Scaffold(
-      appBar: const CarenAppBar(
-        title: 'caren',
-        showProfileButton: true,
-      ),
+      appBar: const CarenAppBar(title: 'caren', showProfileButton: true),
       body: SingleChildScrollView(
         padding: AppSpacing.screenPadding,
         child: Column(
@@ -45,9 +68,13 @@ class DashboardScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Good morning, Julian',
-                        style: AppTypography.titleLarge.copyWith(color: Colors.white),
+                      Flexible(
+                        child: Text(
+                          greetingText,
+                          style: AppTypography.titleLarge.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                       const StatusBadge(
                         label: 'Care, closer',
@@ -58,7 +85,9 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Your morning check-in is ready whenever you feel like completing it.',
-                    style: AppTypography.bodyMedium.copyWith(color: AppColors.secondaryContainer),
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.secondaryContainer,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   CarenButton(
@@ -78,7 +107,9 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Family Circle',
-                  style: AppTypography.titleMedium.copyWith(color: AppColors.primaryDark),
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.primaryDark,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => context.go('/family'),
@@ -88,8 +119,11 @@ class DashboardScreen extends ConsumerWidget {
             ),
             familyAsync.when(
               data: (members) {
-                final completedCount =
-                    members.where((m) => m.checkInStatus == CheckInStatus.completedToday).length;
+                final completedCount = members
+                    .where(
+                      (m) => m.checkInStatus == CheckInStatus.completedToday,
+                    )
+                    .length;
                 return CarenCard(
                   onTap: () => context.go('/family'),
                   child: Column(
@@ -102,7 +136,11 @@ class DashboardScreen extends ConsumerWidget {
                             children: [
                               const CircleAvatar(
                                 backgroundColor: AppColors.secondaryContainer,
-                                child: Icon(Icons.favorite_rounded, color: AppColors.secondary, size: 20),
+                                child: Icon(
+                                  Icons.favorite_rounded,
+                                  color: AppColors.secondary,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: AppSpacing.sm),
                               Text(
@@ -111,7 +149,10 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: AppColors.textMuted,
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -134,7 +175,9 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Me • Personal Wellness',
-                  style: AppTypography.titleMedium.copyWith(color: AppColors.primaryDark),
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.primaryDark,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => context.go('/me'),
@@ -152,23 +195,36 @@ class DashboardScreen extends ConsumerWidget {
                       color: AppColors.primaryContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.air_rounded, color: AppColors.primary, size: 28),
+                    child: const Icon(
+                      Icons.air_rounded,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Take a 3-Minute Breath', style: AppTypography.titleMedium),
+                        const Text(
+                          'Take a 3-Minute Breath',
+                          style: AppTypography.titleMedium,
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           'Guided relaxation session. Private to you.',
-                          style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textMuted),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
                 ],
               ),
             ),
@@ -180,7 +236,9 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Safety Assist',
-                  style: AppTypography.titleMedium.copyWith(color: AppColors.primaryDark),
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.primaryDark,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => context.go('/assist'),
@@ -199,23 +257,36 @@ class DashboardScreen extends ConsumerWidget {
                       color: AppColors.warning.withAlpha(30),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.shield_outlined, color: AppColors.warning, size: 26),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.warning,
+                      size: 26,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Assistance Documentation', style: AppTypography.titleMedium),
+                        const Text(
+                          'Assistance Documentation',
+                          style: AppTypography.titleMedium,
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           'Structured, timestamped record for emergency handoffs.',
-                          style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textMuted),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
                 ],
               ),
             ),
@@ -226,4 +297,3 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 }
-

@@ -44,7 +44,7 @@ class PrivacyPermissionsScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'The CAREN Privacy Promise',
+                              'The caren Privacy Promise',
                               style: AppTypography.titleMedium.copyWith(color: AppColors.primaryDark),
                             ),
                             const SizedBox(height: 4),
@@ -153,7 +153,7 @@ class PrivacyPermissionsScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'How CAREN Uses Your Camera',
+                        'How caren Uses Your Camera',
                         style: AppTypography.labelLarge,
                       ),
                       const SizedBox(height: AppSpacing.xs),

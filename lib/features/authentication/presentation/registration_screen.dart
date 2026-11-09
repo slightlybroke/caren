@@ -1,44 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_text_field.dart';
+import '../../profile/domain/user_profile.dart';
+import 'controllers/auth_controller.dart';
 
-class RegistrationScreen extends StatefulWidget {
+class RegistrationScreen extends ConsumerStatefulWidget {
   const RegistrationScreen({super.key});
 
   @override
-  State<RegistrationScreen> createState() => _RegistrationScreenState();
+  ConsumerState<RegistrationScreen> createState() => _RegistrationScreenState();
 }
 
-class _RegistrationScreenState extends State<RegistrationScreen> {
+class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _cityController = TextEditingController();
+  String _selectedCountry = 'United States';
   bool _agreeToPrivacy = true;
-  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 
-  void _handleRegister() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (mounted) {
-      setState(() => _isLoading = false);
-      context.go('/dashboard');
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final city = _cityController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please complete all required fields.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setState(() => _errorMessage = 'Password must be at least 6 characters.');
+      return;
+    }
+
+    setState(() => _errorMessage = null);
+
+    try {
+      await ref.read(authNotifierProvider.notifier).register(
+            email: email,
+            password: password,
+            displayName: name,
+            country: _selectedCountry,
+            city: city,
+          );
+      if (mounted) {
+        context.go('/family');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final isLoading = authState.isLoading;
+    final localizedEmergencyNumber = EmergencyDirectory.getNumber(_selectedCountry);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -59,7 +98,30 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 'Care, closer. Build a safe wellness connection with your loved ones.',
                 style: AppTypography.bodyMedium,
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(color: AppColors.error),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
               CarenTextField(
                 label: 'Full Name',
                 hint: 'e.g. Eleanor Vance',
@@ -76,11 +138,40 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
               CarenTextField(
-                label: 'Create a Password',
-                hint: 'At least 8 characters',
+                label: 'Password',
+                hint: 'At least 6 characters',
                 controller: _passwordController,
                 obscureText: true,
                 prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCountry,
+                decoration: const InputDecoration(
+                  labelText: 'Country (for Emergency Localization)',
+                  prefixIcon: Icon(Icons.public, color: AppColors.primary),
+                ),
+                items: EmergencyDirectory.countryNumbers.keys.map((c) {
+                  return DropdownMenuItem(
+                    value: c,
+                    child: Text(c),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedCountry = val);
+                },
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Localized emergency number: $localizedEmergencyNumber',
+                style: AppTypography.caption.copyWith(color: AppColors.primaryDark),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              CarenTextField(
+                label: 'City (Optional)',
+                hint: 'e.g. Seattle, Portland, Bengaluru',
+                controller: _cityController,
+                prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
               ),
               const SizedBox(height: AppSpacing.md),
               Row(
@@ -102,7 +193,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               const SizedBox(height: AppSpacing.lg),
               CarenButton(
                 label: 'Create Account',
-                isLoading: _isLoading,
+                isLoading: isLoading,
                 onPressed: _agreeToPrivacy ? _handleRegister : null,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -128,4 +219,3 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 }
-

@@ -11,67 +11,201 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // A user can read another user's check-in ONLY if:
-    // 1. A mutual, approved family link exists
-    // 2. The author has explicitly granted sharing permissions for that field
-    function hasFamilyPermission(authorId, permissionField) {
-      let linkPath = /databases/$(database)/documents/users/$(authorId)/family_links/$(request.auth.uid);
-      return isAuthenticated() &&
-             exists(linkPath) &&
-             get(linkPath).data.status == 'approved' &&
-             get(linkPath).data.permissions[permissionField] == true;
+    function userEmail() {
+      return isAuthenticated() && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : '';
     }
 
-    // User Profiles
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+    function getFamily(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId));
+    }
 
-      // Explicit Family Relationships & Revocable Permissions
-      match /family_links/{familyMemberId} {
-        allow read: if isOwner(userId) || (isAuthenticated() && request.auth.uid == familyMemberId);
-        allow create, update: if isOwner(userId);
-        allow delete: if isOwner(userId) || (isAuthenticated() && request.auth.uid == familyMemberId);
-      }
+    function isFamilyMember(familyId) {
+      return isAuthenticated() && (
+        request.auth.uid in getFamily(familyId).data.memberUids
+      );
+    }
+
+    function isFamilyCreator(familyId) {
+      return isAuthenticated() && (
+        request.auth.uid == getFamily(familyId).data.createdBy
+      );
+    }
+
+    function isInvitee(inviteeEmail) {
+      return isAuthenticated() && userEmail() != '' && userEmail() == inviteeEmail.lower();
+    }
+
+    // 1. User Profiles & Private Data
+    match /users/{userId} {
+      // Prevent user enumeration: only the account owner can read/write their profile
+      allow read, write: if isOwner(userId);
 
       // Privacy Settings (Strictly self-managed)
-      match /settings/privacy {
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Me Experience (Strictly Private Sanctuary: breathing, reflection, personal trends, HRV, raw camera data)
+      // NEVER accessible to family members or third parties
+      match /me_sessions/{sessionId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /personal_trends/{trendId} {
         allow read, write: if isOwner(userId);
       }
     }
 
-    // Daily Check-Ins (Family Experience)
-    match /check_ins/{checkInId} {
-      // Owner can read and write their own check-ins
-      allow create, update, delete: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      
-      // Family members can read only if sharing permission is active
+    // 2. Family Circles & Shared Experience
+    match /families/{familyId} {
+      // Readable ONLY by current members of the family circle
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        (
-          resource.data.isSharedWithFamily == true &&
-          hasFamilyPermission(resource.data.userId, 'shareCheckInStatus')
-        )
+        request.auth.uid in resource.data.memberUids
+      );
+
+      // Creatable by authenticated users when setting themselves as creator and primary member
+      allow create: if isAuthenticated() && (
+        request.auth.uid == request.resource.data.createdBy &&
+        request.resource.data.memberUids.size() == 1 &&
+        request.auth.uid in request.resource.data.memberUids
+      );
+
+      // Circle metadata updateable by members; membership list additions can only append caller's UID (upon accepting invite), or removal of a member by creator
+      allow update: if isAuthenticated() && (
+        // Case A: Existing member updating circle name/metadata without altering memberUids
+        (request.auth.uid in resource.data.memberUids &&
+         request.resource.data.memberUids == resource.data.memberUids) ||
+        // Case B: Creator removing or managing memberUids
+        (request.auth.uid == resource.data.createdBy) ||
+        // Case C: Authenticated user joining by adding their own UID to memberUids
+        (! (request.auth.uid in resource.data.memberUids) &&
+         request.resource.data.memberUids.hasAll(resource.data.memberUids) &&
+         request.resource.data.memberUids.size() == resource.data.memberUids.size() + 1 &&
+         request.auth.uid in request.resource.data.memberUids)
+      );
+
+      // Circle deleteable only by the creator/owner
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.createdBy
+      );
+
+      // Family Members subcollection
+      match /members/{memberId} {
+        // Readable only by active members of the family circle
+        allow read: if isFamilyMember(familyId);
+
+        // Member creation:
+        // Authenticated user adding themselves (memberId == request.auth.uid)
+        // Either as the initial creator or with 'member' role
+        allow create: if isAuthenticated() && (
+          (request.auth.uid == memberId && (
+            isFamilyCreator(familyId) ||
+            request.resource.data.role == 'member'
+          ))
+        );
+
+        // Member update:
+        // - Self update: A member can update their own details (name, city, avatarUrl, sharingPermission),
+        //   but CANNOT change their own role or joinedAt timestamp.
+        // - Creator update: Family creator can update member roles, but CANNOT modify another's sharingPermission.
+        allow update: if isAuthenticated() && (
+          // Self update:
+          (request.auth.uid == memberId &&
+           request.resource.data.role == resource.data.role &&
+           request.resource.data.joinedAt == resource.data.joinedAt) ||
+          // Creator managing non-sensitive member fields (cannot modify another's sharingPermission):
+          (isFamilyCreator(familyId) &&
+           request.auth.uid != memberId &&
+           request.resource.data.sharingPermission == resource.data.sharingPermission)
+        );
+
+        // Member deletion:
+        // - Self leaving the circle (memberId == request.auth.uid), OR
+        // - Creator removing a member
+        allow delete: if isAuthenticated() && (
+          request.auth.uid == memberId ||
+          (isFamilyCreator(familyId) && memberId != resource.data.createdBy)
+        );
+      }
+
+      // Real Daily Check-Ins in the Family Circle
+      match /checkins/{checkinId} {
+        allow read: if isFamilyMember(familyId);
+
+        // A member can only submit a check-in under their own authenticated UID
+        allow create: if isFamilyMember(familyId) &&
+          request.resource.data.userId == request.auth.uid;
+
+        // Only the original author can modify or delete their check-in
+        allow update, delete: if isFamilyMember(familyId) &&
+          resource.data.userId == request.auth.uid;
+      }
+
+      // Gentle Reminders subcollection
+      match /reminders/{reminderId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId) &&
+          request.resource.data.fromUid == request.auth.uid;
+      }
+    }
+
+    // 3. Family Invitations (Email-addressed & Consent-gated)
+    match /invitations/{invitationId} {
+      // Readable ONLY by the inviter or by the authenticated recipient matching their verified email
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.invitedByUid ||
+        isInvitee(resource.data.inviteeEmail)
+      );
+
+      // Creatable by an authenticated family member/creator for an active circle
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.invitedByUid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.expiresAt > request.time;
+
+      // Updatable under strict transition conditions:
+      // - Invitee accepting or declining:
+      //   - Must be pending and unexpired
+      //   - Can only change status to 'accepted' or 'declined'
+      //   - Immutability on familyId, invitedByUid, inviteeEmail, createdAt, expiresAt
+      // - Inviter revoking:
+      //   - Can only change status to 'revoked'
+      //   - Immutability on all other fields
+      allow update: if isAuthenticated() && (
+        // Invitee response:
+        (isInvitee(resource.data.inviteeEmail) &&
+         resource.data.status == 'pending' &&
+         resource.data.expiresAt > request.time &&
+         (request.resource.data.status == 'accepted' || request.resource.data.status == 'declined') &&
+         request.resource.data.familyId == resource.data.familyId &&
+         request.resource.data.invitedByUid == resource.data.invitedByUid &&
+         request.resource.data.inviteeEmail == resource.data.inviteeEmail &&
+         request.resource.data.createdAt == resource.data.createdAt &&
+         request.resource.data.expiresAt == resource.data.expiresAt) ||
+        // Inviter revocation:
+        (request.auth.uid == resource.data.invitedByUid &&
+         resource.data.status == 'pending' &&
+         request.resource.data.status == 'revoked' &&
+         request.resource.data.familyId == resource.data.familyId &&
+         request.resource.data.invitedByUid == resource.data.invitedByUid &&
+         request.resource.data.inviteeEmail == resource.data.inviteeEmail &&
+         request.resource.data.createdAt == resource.data.createdAt &&
+         request.resource.data.expiresAt == resource.data.expiresAt)
+      );
+
+      // Deletable only by the inviter
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.invitedByUid
       );
     }
 
-    // Me Experience (Strictly Private Sanctuary)
-    // NEVER accessible to family members or third parties
-    match /users/{userId}/me_sessions/{sessionId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    match /users/{userId}/personal_trends/{trendId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Assist Experience (Temporary Situations & Medical Handoffs)
+    // 4. Assist Experience (Observations & Medical Handoffs)
     match /assist_sessions/{sessionId} {
-      // Accessible to the person who initiated the assist session
       allow read, write: if isAuthenticated() && (
         resource == null || resource.data.createdBy == request.auth.uid
       );
     }
   }
 }
-

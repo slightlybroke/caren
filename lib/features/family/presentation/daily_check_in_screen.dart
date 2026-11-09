@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,12 +7,13 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
 import '../../../core/widgets/simulated_banner.dart';
-import '../../../core/widgets/vitals_measurement_widget.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../services/vitals/vitals_models.dart';
-import '../../../services/vitals/vitals_provider.dart';
 import '../data/family_repository.dart';
+import '../../authentication/data/auth_repository.dart';
+import '../../profile/data/profile_repository.dart';
+import '../../wellness/presentation/camera_positioning_screen.dart';
 import '../domain/daily_check_in.dart';
 
 class DailyCheckInScreen extends ConsumerStatefulWidget {
@@ -32,105 +32,48 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
 
   // Camera Spot Check State (Metric-Aware)
   MeasurementTarget _selectedTarget = MeasurementTarget.pulseOnly;
-  bool _showCameraMeasurement = false;
-  bool _isMeasuring = false;
-  bool _permissionDenied = false;
-  bool _isPermanentlyDenied = false;
-  VitalsStreamData? _latestStreamData;
-  StreamSubscription<VitalsStreamData>? _streamSub;
   MeasurementResult? _completedMeasurement;
   String? _measurementError;
 
   @override
   void dispose() {
-    _streamSub?.cancel();
     _noteController.dispose();
     super.dispose();
   }
 
   void _startCameraSpotCheck() async {
-    final provider = ref.read(vitalsProvider);
     setState(() {
-      _showCameraMeasurement = true;
-      _permissionDenied = false;
       _measurementError = null;
     });
 
-    final permResult = await provider.requestCameraPermission();
-    if (!permResult.granted) {
-      if (mounted) {
-        setState(() {
-          _permissionDenied = true;
-          _isPermanentlyDenied = permResult.permanentlyDenied;
-          _isMeasuring = false;
-        });
-      }
-      return;
-    }
-
-    setState(() {
-      _isMeasuring = true;
-      _completedMeasurement = null;
-    });
-
-    final stream = provider.startMeasurement(
-      config: MeasurementConfig(
-        target: _selectedTarget,
-        durationSeconds: _selectedTarget.defaultDurationSeconds,
+    final result = await Navigator.of(context).push<MeasurementResult?>(
+      MaterialPageRoute(
+        builder: (_) => CameraPositioningScreen(
+          target: _selectedTarget,
+          title: 'Family Spot-Check',
+          subtitle: 'Position your face in the guide before measuring.',
+        ),
       ),
     );
 
-    _streamSub = stream.listen(
-      (data) {
-        if (mounted) {
-          setState(() {
-            _latestStreamData = data;
-          });
-          if (data.progress >= 1.0) {
-            _finishMeasurement();
-          }
-        }
-      },
-      onError: (err) {
-        if (mounted) {
-          setState(() {
-            _isMeasuring = false;
-            _measurementError = 'Spot check could not be completed clearly. You may try again or submit self-reported data.';
-          });
-        }
-      },
-    );
-  }
-
-  void _finishMeasurement() async {
-    _streamSub?.cancel();
-    final provider = ref.read(vitalsProvider);
-    final result = await provider.stopMeasurement();
-    if (mounted) {
+    if (result != null && mounted) {
       setState(() {
-        _isMeasuring = false;
         _completedMeasurement = result;
       });
     }
   }
 
-  void _cancelCameraMeasurement() async {
-    _streamSub?.cancel();
-    final provider = ref.read(vitalsProvider);
-    await provider.cancelMeasurement();
-    if (mounted) {
-      setState(() {
-        _isMeasuring = false;
-        _showCameraMeasurement = false;
-      });
-    }
-  }
-
   void _submitCheckIn() async {
+    final currentUser = ref.read(currentUserProvider);
+    final userProfile = ref.read(userProfileProvider).asData?.value;
+
+    final userId = currentUser?.uid ?? 'user_self';
+    final userName = userProfile?.fullName ?? currentUser?.displayName ?? 'Me';
+
     final newCheckIn = DailyCheckIn(
       id: 'chk_${DateTime.now().millisecondsSinceEpoch}',
-      userId: 'user_self',
-      userName: 'Julian Vance',
+      userId: userId,
+      userName: userName,
       timestamp: DateTime.now(),
       feeling: _feeling,
       sleep: _sleep,
@@ -276,7 +219,7 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
 
-                  if (!_showCameraMeasurement && _completedMeasurement == null) ...[
+                  if (_completedMeasurement == null) ...[
                     Text('Select Measurement Window:', style: AppTypography.labelMedium),
                     const SizedBox(height: AppSpacing.xs),
                     Wrap(
@@ -314,29 +257,11 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
                     ),
                   ],
 
-                  if (_permissionDenied) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    CarenPermissionDeniedView(
-                      isPermanentlyDenied: _isPermanentlyDenied,
-                      onGrantPermission: _startCameraSpotCheck,
-                      onOpenSettings: () => ref.read(vitalsProvider).openAppSettings(),
-                      onContinueWithout: () => setState(() => _showCameraMeasurement = false),
-                    ),
-                  ],
-
                   if (_measurementError != null) ...[
                     const SizedBox(height: AppSpacing.sm),
                     CarenErrorView(
                       message: _measurementError!,
                       onRetry: _startCameraSpotCheck,
-                    ),
-                  ],
-
-                  if (_isMeasuring) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    VitalsMeasurementWidget(
-                      streamData: _latestStreamData,
-                      onCancel: _cancelCameraMeasurement,
                     ),
                   ],
 

@@ -5,6 +5,8 @@ import 'package:caren/core/widgets/caren_card.dart';
 import 'package:caren/core/widgets/status_badge.dart';
 import 'package:caren/core/widgets/simulated_banner.dart';
 import 'package:caren/core/widgets/state_views.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:caren/features/diagnostics/presentation/diagnostics_screen.dart';
 
 void main() {
   group('CAREN Core UI Widgets Tests', () {
@@ -129,6 +131,24 @@ void main() {
       expect(find.text('Open Android Settings'), findsOneWidget);
       await tester.tap(find.text('Open Android Settings'));
       expect(settingsOpened, isTrue);
+    });
+
+    testWidgets('DiagnosticsScreen renders developer controls and mode indicators', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: DiagnosticsScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Developer Diagnostics'), findsOneWidget);
+      expect(find.text('Live Measurement Console'), findsOneWidget);
+      expect(find.text('Start Live Measurement'), findsOneWidget);
+      expect(find.text('SDK Runtime Lifecycle & Architecture'), findsOneWidget);
     });
   });
 }

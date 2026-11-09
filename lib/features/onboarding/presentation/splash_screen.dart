@@ -1,24 +1,31 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../authentication/data/auth_repository.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
     Timer(const Duration(milliseconds: 1400), () {
       if (mounted) {
-        context.go('/onboarding');
+        final user = ref.read(currentUserProvider);
+        if (user != null) {
+          context.go('/family');
+        } else {
+          context.go('/onboarding');
+        }
       }
     });
   }
@@ -69,4 +76,3 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-

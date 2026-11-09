@@ -14,6 +14,28 @@ class SharingPermission {
     required this.lastUpdated,
   });
 
+  Map<String, dynamic> toMap() {
+    return {
+      'shareCheckInStatus': shareCheckInStatus,
+      'shareSelfReportedMood': shareSelfReportedMood,
+      'shareVitalsMeasurements': shareVitalsMeasurements,
+      'shareNotes': shareNotes,
+      'lastUpdated': lastUpdated.toIso8601String(),
+    };
+  }
+
+  factory SharingPermission.fromMap(Map<String, dynamic> map) {
+    return SharingPermission(
+      shareCheckInStatus: map['shareCheckInStatus'] as bool? ?? true,
+      shareSelfReportedMood: map['shareSelfReportedMood'] as bool? ?? true,
+      shareVitalsMeasurements: map['shareVitalsMeasurements'] as bool? ?? false,
+      shareNotes: map['shareNotes'] as bool? ?? false,
+      lastUpdated: map['lastUpdated'] != null
+          ? DateTime.tryParse(map['lastUpdated'] as String) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+
   SharingPermission copyWith({
     bool? shareCheckInStatus,
     bool? shareSelfReportedMood,
@@ -30,4 +52,3 @@ class SharingPermission {
     );
   }
 }
-

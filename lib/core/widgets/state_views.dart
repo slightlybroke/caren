@@ -108,7 +108,7 @@ class CarenPermissionDeniedView extends StatelessWidget {
     super.key,
     this.title = 'Camera Access Needed for Measurement',
     this.description =
-        'CAREN uses your front camera to observe pulse and breathing signals during voluntary spot-checks. We never record, upload, or store video. You can also complete your check-in with self-reported answers.',
+        'caren uses your front camera to observe pulse and breathing signals during voluntary spot-checks. We never record, upload, or store video. You can also complete your check-in with self-reported answers.',
     required this.onGrantPermission,
     this.onContinueWithout,
     this.onOpenSettings,

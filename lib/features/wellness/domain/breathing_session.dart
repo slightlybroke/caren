@@ -11,6 +11,7 @@ class BreathingSession {
   final DateTime startTime;
   final int durationMinutes; // 2, 3, 5, or 10
   final BreathingCadence cadence;
+  final String? customTitle;
   final MeasurementResult? preSessionVitals;
   final MeasurementResult? postSessionVitals;
   final String? personalReflection;
@@ -21,6 +22,7 @@ class BreathingSession {
     required this.startTime,
     required this.durationMinutes,
     required this.cadence,
+    this.customTitle,
     this.preSessionVitals,
     this.postSessionVitals,
     this.personalReflection,
@@ -28,6 +30,9 @@ class BreathingSession {
   });
 
   String get cadenceTitle {
+    if (customTitle != null && customTitle!.isNotEmpty) {
+      return customTitle!;
+    }
     switch (cadence) {
       case BreathingCadence.boxBreathing:
         return 'Box Breathing (4-4-4-4)';

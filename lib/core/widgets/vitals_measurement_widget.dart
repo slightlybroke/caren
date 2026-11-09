@@ -170,6 +170,29 @@ class VitalsMeasurementWidget extends StatelessWidget {
               ),
             ),
           ),
+          if (streamData?.sdkErrorCode != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.dangerContainer,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.danger.withAlpha(80)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'SDK Error: [${streamData!.sdkErrorCode}] ${streamData?.sdkErrorMessage ?? ""}',
+                      style: AppTypography.caption.copyWith(color: AppColors.danger, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
 
           // Metric-Aware Confidence Readouts

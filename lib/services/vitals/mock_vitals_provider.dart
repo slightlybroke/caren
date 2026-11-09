@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:uuid/uuid.dart';
+import 'session_repository.dart';
 import 'vitals_models.dart';
 import 'vitals_provider.dart';
 
@@ -16,6 +18,8 @@ class MockVitalsProvider implements VitalsProvider {
   final bool shouldSimulateSuccess;
   final bool shouldSimulatePermissionDenial;
   final Duration updateInterval;
+  final MeasurementSessionRepository? sessionRepository;
+  static const _uuid = Uuid();
 
   StreamController<VitalsStreamData>? _streamController;
   Timer? _timer;
@@ -24,11 +28,13 @@ class MockVitalsProvider implements VitalsProvider {
   int _elapsedSeconds = 0;
   MeasurementConfig _activeConfig = const MeasurementConfig();
   bool _isDisposed = false;
+  MeasurementSessionRecord? _activeSession;
 
   MockVitalsProvider({
     this.shouldSimulateSuccess = true,
     this.shouldSimulatePermissionDenial = false,
     this.updateInterval = const Duration(milliseconds: 250), // 4 ticks per sec
+    this.sessionRepository,
   });
 
   @override
@@ -36,6 +42,9 @@ class MockVitalsProvider implements VitalsProvider {
 
   @override
   String get providerName => 'Simulated Mock Vitals (Dev & Test Only)';
+
+  @override
+  MeasurementSessionRecord? get activeSession => _activeSession;
 
   @override
   Future<bool> initialize({String? apiKey}) async {
@@ -61,7 +70,23 @@ class MockVitalsProvider implements VitalsProvider {
   Stream<VitalsStreamData> startMeasurement({
     MeasurementConfig config = const MeasurementConfig(),
   }) {
+    if (_timer != null && _timer!.isActive) {
+      // Concurrency guard: return current stream if already running
+      return _streamController?.stream ?? Stream.empty();
+    }
+
     _activeConfig = config;
+    final sessionId = config.sessionId ?? 'mock_sess_${_uuid.v4().substring(0, 8)}';
+    final sessionRecord = MeasurementSessionRecord(
+      id: sessionId,
+      target: config.target,
+      createdAt: DateTime.now(),
+      lastActivityAt: DateTime.now(),
+      status: MeasurementSessionStatus.active,
+    );
+    _activeSession = sessionRecord;
+    sessionRepository?.saveSession(sessionRecord);
+
     _streamController?.close();
     _streamController = StreamController<VitalsStreamData>.broadcast();
     _ticks = 0;
@@ -146,6 +171,10 @@ class MockVitalsProvider implements VitalsProvider {
           isSimulated: true, // ALWAYS true for Mock
           confidenceScore: pulse != null ? 0.95 : null,
           stabilityScore: isFaceDetected ? 0.92 : null,
+          validationCode: isFaceDetected ? 'OK' : 'NO_FACE_FOUND',
+          validationHint: isFaceDetected ? 'Positioning good' : 'Align face inside frame',
+          sessionId: sessionId,
+          sessionStatus: MeasurementSessionStatus.active,
         ),
       );
 
@@ -158,32 +187,49 @@ class MockVitalsProvider implements VitalsProvider {
   }
 
   @override
-  Future<MeasurementResult> stopMeasurement() async {
+  Future<MeasurementResult> stopMeasurement({
+    bool markInterrupted = false,
+    String? interruptionReason,
+  }) async {
     _timer?.cancel();
     await Future.delayed(const Duration(milliseconds: 150));
 
     final requiredWindow = _activeConfig.target.requiredConfidenceWindowSeconds;
-    final metWindow = _elapsedSeconds >= requiredWindow;
+    final metWindow = _elapsedSeconds >= requiredWindow && !markInterrupted;
 
     if (!shouldSimulateSuccess || !metWindow) {
-      return MeasurementResult(
+      final failResult = MeasurementResult(
         target: _activeConfig.target,
         durationSeconds: _elapsedSeconds,
         timestamp: DateTime.now(),
         isSimulated: true,
         isSuccessful: false,
-        failureReason: !metWindow
-            ? 'Stopped at ${_elapsedSeconds}s before required ${requiredWindow}s confidence window elapsed.'
-            : 'Simulated spot-check failed due to excessive motion or camera shake.',
+        failureReason: markInterrupted
+            ? (interruptionReason ?? 'Measurement was interrupted before completion.')
+            : (!metWindow
+                ? 'Stopped at ${_elapsedSeconds}s before required ${requiredWindow}s confidence window elapsed.'
+                : 'Simulated spot-check failed due to excessive motion or camera shake.'),
         notes: '[SIMULATED] Developer mock reading.',
       );
+
+      _activeSession = _activeSession?.copyWith(
+        status: MeasurementSessionStatus.interrupted,
+        isInterrupted: true,
+        interruptionReason: failResult.failureReason,
+        result: failResult,
+        lastActivityAt: DateTime.now(),
+      );
+      if (_activeSession != null) {
+        sessionRepository?.saveSession(_activeSession!);
+      }
+      return failResult;
     }
 
     final double pulse = 72.0;
     final double? breathing = _elapsedSeconds >= 30 ? 15.0 : null;
     final double? hrv = _elapsedSeconds >= 60 ? 42.0 : null;
 
-    return MeasurementResult(
+    final successResult = MeasurementResult(
       target: _activeConfig.target,
       durationSeconds: _elapsedSeconds,
       pulseRateBpm: pulse,
@@ -196,11 +242,32 @@ class MockVitalsProvider implements VitalsProvider {
       isSuccessful: true,
       notes: '[SIMULATED] Developer mock reading. Not clinical or physiological.',
     );
+
+    _activeSession = _activeSession?.copyWith(
+      status: MeasurementSessionStatus.completed,
+      result: successResult,
+      completedAt: DateTime.now(),
+      lastActivityAt: DateTime.now(),
+    );
+    if (_activeSession != null) {
+      sessionRepository?.saveSession(_activeSession!);
+    }
+
+    return successResult;
   }
 
   @override
-  Future<void> cancelMeasurement() async {
+  Future<void> cancelMeasurement({String? reason}) async {
     _timer?.cancel();
+    _activeSession = _activeSession?.copyWith(
+      status: MeasurementSessionStatus.cancelled,
+      userCancelled: true,
+      interruptionReason: reason ?? 'User cancelled measurement',
+      lastActivityAt: DateTime.now(),
+    );
+    if (_activeSession != null) {
+      sessionRepository?.saveSession(_activeSession!);
+    }
   }
 
   @override
@@ -208,5 +275,34 @@ class MockVitalsProvider implements VitalsProvider {
     _isDisposed = true;
     _timer?.cancel();
     await _streamController?.close();
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDiagnosticsState() async {
+    return {
+      'isInitialized': true,
+      'hasApiKey': false,
+      'hasCameraPermission': !shouldSimulatePermissionDenial,
+      'isSessionActive': _timer != null && _timer!.isActive,
+      'currentSessionId': _activeSession?.id ?? 'None',
+      'sessionState': _timer != null && _timer!.isActive ? 'ACTIVE' : 'IDLE',
+      'activeTarget': _activeConfig.target.name,
+      'sdkVersion': 'MOCK_SIMULATOR',
+      'cameraPreviewAttached': false,
+      'processingStatus': _timer != null && _timer!.isActive ? 'RUNNING' : 'IDLE',
+      'validationCode': 'MOCK_VALID',
+      'validationHint': 'Simulated developer preview mode',
+      'latestErrorCode': 'Not exposed by SDK',
+      'latestErrorMessage': 'None',
+      'startRequestsCount': 0,
+      'rejectedDuplicateStartsCount': 0,
+      'lastStartTimeMs': 0,
+      'lastStopTimeMs': 0,
+      'lastInterruptionReason': _activeSession?.interruptionReason ?? 'None',
+      'authStatus': 'Mock Simulation (No Native Credentials)',
+      'latestPulse': 72.0,
+      'telemetryConfigured': false,
+      'isMock': true,
+    };
   }
 }
