@@ -175,7 +175,7 @@ class PrivacyPermissionsScreen extends ConsumerWidget {
                                   shareSelfReportedWellness: false,
                                   shareCameraMeasurementsWithFamily: false,
                                   storeMeasurementsLocallyOnly: true,
-                                  enableSmartSpectraSimulatedMock: true,
+                                  enableSmartSpectraSimulatedMock: false,
                                   lastUpdated: DateTime.now(),
                                 ),
                               );

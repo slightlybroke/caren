@@ -15,6 +15,10 @@ class CarenTextField extends StatelessWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final FocusNode? focusNode;
+  final Iterable<String>? autofillHints;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final bool enabled;
 
   const CarenTextField({
     super.key,
@@ -29,6 +33,10 @@ class CarenTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.focusNode,
+    this.autofillHints,
+    this.textInputAction,
+    this.onSubmitted,
+    this.enabled = true,
   });
 
   @override
@@ -48,6 +56,10 @@ class CarenTextField extends StatelessWidget {
           keyboardType: keyboardType,
           maxLines: maxLines,
           focusNode: focusNode,
+          enabled: enabled,
+          autofillHints: autofillHints,
+          textInputAction: textInputAction,
+          onSubmitted: onSubmitted,
           style: AppTypography.bodyLarge,
           decoration: InputDecoration(
             hintText: hint,

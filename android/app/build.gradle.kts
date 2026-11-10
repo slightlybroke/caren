@@ -15,6 +15,14 @@ if (localPropertiesFile.exists()) {
 }
 val smartSpectraApiKey: String = localProperties.getProperty("SMARTSPECTRA_API_KEY", "")
 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { stream ->
+        keystoreProperties.load(stream)
+    }
+}
+
 android {
     namespace = "com.caren.app.caren"
     compileSdk = flutter.compileSdkVersion
@@ -45,11 +53,30 @@ android {
         buildConfigField("String", "SMARTSPECTRA_API_KEY", "\"$smartSpectraApiKey\"")
     }
 
+    signingConfigs {
+        create("release") {
+            val keyAliasProp = keystoreProperties.getProperty("keyAlias")
+            val keyPasswordProp = keystoreProperties.getProperty("keyPassword")
+            val storeFileProp = keystoreProperties.getProperty("storeFile")
+            val storePasswordProp = keystoreProperties.getProperty("storePassword")
+
+            if (!storeFileProp.isNullOrBlank() && file(storeFileProp).exists()) {
+                keyAlias = keyAliasProp
+                keyPassword = keyPasswordProp
+                storeFile = file(storeFileProp)
+                storePassword = storePasswordProp
+            } else {
+                keyAlias = signingConfigs.getByName("debug").keyAlias
+                keyPassword = signingConfigs.getByName("debug").keyPassword
+                storeFile = signingConfigs.getByName("debug").storeFile
+                storePassword = signingConfigs.getByName("debug").storePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

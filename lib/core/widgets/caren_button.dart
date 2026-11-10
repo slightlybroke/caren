@@ -48,10 +48,15 @@ class CarenButton extends StatelessWidget {
                 Icon(icon, size: 20),
                 const SizedBox(width: AppSpacing.xs),
               ],
-              Text(
-                label,
-                style: AppTypography.labelLarge.copyWith(
-                  color: _getTextColor(),
+              Flexible(
+                child: Text(
+                  label,
+                  style: AppTypography.labelLarge.copyWith(
+                    color: _getTextColor(),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],

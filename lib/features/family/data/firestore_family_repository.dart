@@ -281,6 +281,8 @@ class FirestoreFamilyRepository implements FamilyRepository {
     required String inviteeEmail,
     required String relationship,
     String? familyName,
+    Map<String, bool>? sharingPermissions,
+    String? passcode,
   }) async {
     final family = await getOrCreatePrimaryFamily();
     final invitationDoc = _invitationsCol.doc();
@@ -297,6 +299,8 @@ class FirestoreFamilyRepository implements FamilyRepository {
       status: InvitationStatus.pending,
       createdAt: now,
       expiresAt: now.add(const Duration(days: 7)),
+      sharingPermissions: sharingPermissions,
+      passcode: passcode,
     );
 
     await invitationDoc.set(invitation.toFirestore());
@@ -349,8 +353,9 @@ class FirestoreFamilyRepository implements FamilyRepository {
         return;
       }
 
-      // 6. Atomically add member
+      // 6. Atomically add member with sovereign default-OFF or configured permissions
       final memberDocRef = familyDocRef.collection('members').doc(currentUserId);
+      final initialSharing = inv.sharingPermissions;
       transaction.set(memberDocRef, {
         'name': currentUserName,
         'email': currentUserEmail,
@@ -359,13 +364,13 @@ class FirestoreFamilyRepository implements FamilyRepository {
         'role': 'member',
         'city': '',
         'avatarUrl': '',
-        'sharingPermission': SharingPermission(
-          shareCheckInStatus: true,
-          shareSelfReportedMood: true,
-          shareVitalsMeasurements: true,
-          shareNotes: true,
-          lastUpdated: DateTime.now(),
-        ).toMap(),
+        'sharingPermission': {
+          'shareCheckInStatus': initialSharing['shareCheckInStatus'] ?? false,
+          'shareSelfReportedMood': initialSharing['shareSelfReportedMood'] ?? false,
+          'shareVitalsMeasurements': initialSharing['shareVitalsMeasurements'] ?? false,
+          'shareNotes': initialSharing['shareNotes'] ?? false,
+          'lastUpdated': DateTime.now().toIso8601String(),
+        },
       });
 
       // 7. Update family memberUids

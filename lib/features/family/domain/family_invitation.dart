@@ -23,6 +23,15 @@ class FamilyInvitation {
   final DateTime? acceptedAt;
   final DateTime? declinedAt;
   final DateTime? revokedAt;
+  final Map<String, bool> sharingPermissions;
+  final String? passcode;
+
+  static const Map<String, bool> defaultSharingPermissions = {
+    'shareCheckInStatus': false,
+    'shareSelfReportedMood': false,
+    'shareVitalsMeasurements': false,
+    'shareNotes': false,
+  };
 
   FamilyInvitation({
     required this.id,
@@ -38,7 +47,10 @@ class FamilyInvitation {
     this.acceptedAt,
     this.declinedAt,
     this.revokedAt,
-  }) : expiresAt = expiresAt ?? createdAt.add(const Duration(days: 7));
+    Map<String, bool>? sharingPermissions,
+    this.passcode,
+  })  : expiresAt = expiresAt ?? createdAt.add(const Duration(days: 7)),
+        sharingPermissions = sharingPermissions ?? defaultSharingPermissions;
 
   /// Checks if this invitation is expired (past 7 days or marked expired).
   bool get isExpired {
@@ -69,6 +81,8 @@ class FamilyInvitation {
       'status': effectiveStatus.name,
       'createdAt': Timestamp.fromDate(createdAt),
       'expiresAt': Timestamp.fromDate(expiresAt),
+      'sharingPermissions': sharingPermissions,
+      if (passcode != null) 'passcode': passcode,
       if (acceptedAt != null) 'acceptedAt': Timestamp.fromDate(acceptedAt!),
       if (declinedAt != null) 'declinedAt': Timestamp.fromDate(declinedAt!),
       if (revokedAt != null) 'revokedAt': Timestamp.fromDate(revokedAt!),
@@ -86,6 +100,10 @@ class FamilyInvitation {
 
     final created = createdTimestamp?.toDate() ?? DateTime.now();
     final expires = expiresTimestamp?.toDate() ?? created.add(const Duration(days: 7));
+    final rawPermissions = data['sharingPermissions'] as Map<String, dynamic>?;
+    final permissions = rawPermissions != null
+        ? rawPermissions.map((k, v) => MapEntry(k, v == true))
+        : defaultSharingPermissions;
 
     return FamilyInvitation(
       id: doc.id,
@@ -104,6 +122,8 @@ class FamilyInvitation {
       acceptedAt: acceptedTimestamp?.toDate(),
       declinedAt: declinedTimestamp?.toDate(),
       revokedAt: revokedTimestamp?.toDate(),
+      sharingPermissions: permissions,
+      passcode: data['passcode'] as String?,
     );
   }
 }

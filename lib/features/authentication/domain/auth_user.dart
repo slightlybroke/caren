@@ -1,4 +1,4 @@
-/// Represents an authenticated user in the CAREN application.
+/// Represents an authenticated user in the caren application.
 class AuthUser {
   final String uid;
   final String email;
@@ -26,6 +26,6 @@ class AuthUser {
   int get hashCode => uid.hashCode ^ email.hashCode;
 
   @override
-  String toString() => 'AuthUser(uid: $uid, email: $email, displayName: $displayName)';
+  String toString() =>
+      'AuthUser(uid: $uid, email: $email, displayName: $displayName)';
 }
-

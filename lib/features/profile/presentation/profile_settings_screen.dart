@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -230,13 +231,15 @@ class ProfileSettingsScreen extends ConsumerWidget {
                         loading: () => const SizedBox.shrink(),
                         error: (_, _) => const SizedBox.shrink(),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      CarenButton(
-                        label: 'Developer Diagnostics & SDK Console',
-                        icon: Icons.bug_report_outlined,
-                        variant: CarenButtonVariant.outline,
-                        onPressed: () => context.push('/diagnostics'),
-                      ),
+                      if (kDebugMode) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        CarenButton(
+                          label: 'Developer Diagnostics & SDK Console',
+                          icon: Icons.bug_report_outlined,
+                          variant: CarenButtonVariant.outline,
+                          onPressed: () => context.push('/diagnostics'),
+                        ),
+                      ],
                     ],
                   ),
                 ),

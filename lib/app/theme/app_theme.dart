@@ -9,16 +9,21 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      fontFamily: AppTypography.fontFamily,
       colorScheme: const ColorScheme(
         brightness: Brightness.light,
         primary: AppColors.primary,
         onPrimary: AppColors.onPrimary,
         primaryContainer: AppColors.primaryContainer,
-        onPrimaryContainer: AppColors.primaryDark,
+        onPrimaryContainer: AppColors.onPrimaryContainer,
         secondary: AppColors.secondary,
         onSecondary: AppColors.onSecondary,
         secondaryContainer: AppColors.secondaryContainer,
-        onSecondaryContainer: AppColors.onSecondary,
+        onSecondaryContainer: AppColors.onSecondaryContainer,
+        tertiary: AppColors.tertiary,
+        onTertiary: AppColors.onTertiary,
+        tertiaryContainer: AppColors.tertiaryContainer,
+        onTertiaryContainer: AppColors.onTertiaryContainer,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
         surfaceContainerHighest: AppColors.surfaceVariant,
@@ -26,22 +31,26 @@ class AppTheme {
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'Roboto',
       textTheme: const TextTheme(
         displayLarge: AppTypography.displayLarge,
         displayMedium: AppTypography.displayMedium,
+        displaySmall: AppTypography.displaySmall,
         titleLarge: AppTypography.titleLarge,
         titleMedium: AppTypography.titleMedium,
+        titleSmall: AppTypography.titleSmall,
         bodyLarge: AppTypography.bodyLarge,
         bodyMedium: AppTypography.bodyMedium,
+        bodySmall: AppTypography.bodySmall,
         labelLarge: AppTypography.labelLarge,
         labelMedium: AppTypography.labelMedium,
+        labelSmall: AppTypography.labelSmall,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
         elevation: 0,
+        scrolledUnderElevation: 1,
         centerTitle: false,
-        iconTheme: IconThemeData(color: AppColors.primaryDark),
+        iconTheme: IconThemeData(color: AppColors.primary),
         titleTextStyle: AppTypography.titleLarge,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -50,15 +59,23 @@ class AppTheme {
         unselectedItemColor: AppColors.textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+        selectedLabelStyle: TextStyle(
+          fontFamily: AppTypography.fontFamily,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontFamily: AppTypography.fontFamily,
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+        ),
       ),
       cardTheme: CardThemeData(
-        color: AppColors.surface,
+        color: AppColors.cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          side: const BorderSide(color: AppColors.border, width: 1.0),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: Color(0x0F174F47), width: 1.0),
         ),
       ),
       dividerTheme: const DividerThemeData(
@@ -68,4 +85,3 @@ class AppTheme {
     );
   }
 }
-

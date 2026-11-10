@@ -3,11 +3,7 @@
 /// - Pulse rate: 12 seconds
 /// - Breathing rate: 30 seconds
 /// - HRV: 60 seconds
-enum MeasurementTarget {
-  pulseOnly,
-  breathingAndPulse,
-  fullVitalsAndHrv,
-}
+enum MeasurementTarget { pulseOnly, breathingAndPulse, fullVitalsAndHrv }
 
 extension MeasurementTargetExtension on MeasurementTarget {
   int get defaultDurationSeconds {
@@ -95,9 +91,11 @@ class CameraPermissionResult {
 class MeasurementConfig {
   final MeasurementTarget target;
   final int durationSeconds;
+
   /// Optional specific session ID if continuing an existing session.
   final String? sessionId;
-  /// Built-in SDK diagnostic telemetry setting (defaults to false in CAREN for privacy)
+
+  /// Built-in SDK diagnostic telemetry setting (defaults to false in caren for privacy)
   final bool enableSdkTelemetry;
 
   const MeasurementConfig({
@@ -112,8 +110,10 @@ class MeasurementConfig {
 class VitalsStreamData {
   final MeasurementStatus status;
   final int elapsedSeconds;
-  final double? instantaneousPulse; // Null if elapsed < 12s or signal unreliable
-  final double? instantaneousBreathing; // Null if elapsed < 30s or signal unreliable
+  final double?
+  instantaneousPulse; // Null if elapsed < 12s or signal unreliable
+  final double?
+  instantaneousBreathing; // Null if elapsed < 30s or signal unreliable
   final double? waveformValue;
   final bool isFaceDetected;
   final double progress; // 0.0 to 1.0
@@ -128,7 +128,8 @@ class VitalsStreamData {
   final String? sdkErrorMessage; // Genuine SDK error message
   final String? sessionId; // Associated session ID
   final MeasurementSessionStatus? sessionStatus; // Current session state
-  final Map<String, dynamic>? rawTelemetry; // Raw EventChannel packet for developer inspection
+  final Map<String, dynamic>?
+  rawTelemetry; // Raw EventChannel packet for developer inspection
 
   const VitalsStreamData({
     required this.status,
@@ -153,21 +154,21 @@ class VitalsStreamData {
   });
 
   factory VitalsStreamData.initial({String? sessionId}) => VitalsStreamData(
-        status: MeasurementStatus.preparingCamera,
-        elapsedSeconds: 0,
-        instantaneousPulse: null,
-        instantaneousBreathing: null,
-        waveformValue: 0.0,
-        isFaceDetected: false,
-        progress: 0.0,
-        statusText: 'Preparing camera feed...',
-        isSimulated: false,
-        validationCode: null,
-        validationHint: null,
-        processingStatus: 'IDLE',
-        sessionId: sessionId,
-        sessionStatus: MeasurementSessionStatus.planned,
-      );
+    status: MeasurementStatus.preparingCamera,
+    elapsedSeconds: 0,
+    instantaneousPulse: null,
+    instantaneousBreathing: null,
+    waveformValue: 0.0,
+    isFaceDetected: false,
+    progress: 0.0,
+    statusText: 'Preparing camera feed...',
+    isSimulated: false,
+    validationCode: null,
+    validationHint: null,
+    processingStatus: 'IDLE',
+    sessionId: sessionId,
+    sessionStatus: MeasurementSessionStatus.planned,
+  );
 }
 
 /// Persistent record representing a discrete user measurement session.
@@ -241,20 +242,22 @@ class MeasurementSessionRecord {
       'createdAt': createdAt.toIso8601String(),
       'lastActivityAt': lastActivityAt.toIso8601String(),
       'status': status.name,
-      'result': result != null ? {
-        'target': result!.target.name,
-        'durationSeconds': result!.durationSeconds,
-        'pulseRateBpm': result!.pulseRateBpm,
-        'breathingRateBpm': result!.breathingRateBpm,
-        'hrvRmssdMs': result!.hrvRmssdMs,
-        'qualityScore': result!.qualityScore,
-        'stabilityStatus': result!.stabilityStatus,
-        'timestamp': result!.timestamp.toIso8601String(),
-        'isSimulated': result!.isSimulated,
-        'isSuccessful': result!.isSuccessful,
-        'failureReason': result!.failureReason,
-        'notes': result!.notes,
-      } : null,
+      'result': result != null
+          ? {
+              'target': result!.target.name,
+              'durationSeconds': result!.durationSeconds,
+              'pulseRateBpm': result!.pulseRateBpm,
+              'breathingRateBpm': result!.breathingRateBpm,
+              'hrvRmssdMs': result!.hrvRmssdMs,
+              'qualityScore': result!.qualityScore,
+              'stabilityStatus': result!.stabilityStatus,
+              'timestamp': result!.timestamp.toIso8601String(),
+              'isSimulated': result!.isSimulated,
+              'isSuccessful': result!.isSuccessful,
+              'failureReason': result!.failureReason,
+              'notes': result!.notes,
+            }
+          : null,
       'completedAt': completedAt?.toIso8601String(),
       'isInterrupted': isInterrupted,
       'interruptionReason': interruptionReason,
@@ -334,7 +337,8 @@ class MeasurementResult {
   final double? breathingRateBpm; // Null if stopped before 30s window
   final double? hrvRmssdMs; // Null if stopped before 60s window
   final double? qualityScore; // Reported ONLY if native SDK provided confidence
-  final String? stabilityStatus; // Reported ONLY if native SDK provided stability
+  final String?
+  stabilityStatus; // Reported ONLY if native SDK provided stability
   final DateTime timestamp;
   final bool isSimulated;
   final bool isSuccessful;
@@ -358,7 +362,8 @@ class MeasurementResult {
 
   String get summaryLabel {
     if (!isSuccessful) {
-      return failureReason ?? 'Measurement incomplete (confidence window not reached)';
+      return failureReason ??
+          'Measurement incomplete (confidence window not reached)';
     }
     final List<String> parts = [];
     if (pulseRateBpm != null) {

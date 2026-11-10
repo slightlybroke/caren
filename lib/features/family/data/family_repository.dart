@@ -26,6 +26,8 @@ abstract class FamilyRepository {
     required String inviteeEmail,
     required String relationship,
     String? familyName,
+    Map<String, bool>? sharingPermissions,
+    String? passcode,
   });
   Future<void> acceptInvitation(String invitationId);
   Future<void> declineInvitation(String invitationId);
@@ -216,6 +218,8 @@ class LocalFamilyRepository implements FamilyRepository {
     required String inviteeEmail,
     required String relationship,
     String? familyName,
+    Map<String, bool>? sharingPermissions,
+    String? passcode,
   }) async {
     final now = DateTime.now();
     final inv = FamilyInvitation(
@@ -229,6 +233,8 @@ class LocalFamilyRepository implements FamilyRepository {
       status: InvitationStatus.pending,
       createdAt: now,
       expiresAt: now.add(const Duration(days: 7)),
+      sharingPermissions: sharingPermissions,
+      passcode: passcode,
     );
     _invitations.add(inv);
   }
@@ -257,9 +263,12 @@ class LocalFamilyRepository implements FamilyRepository {
         createdAt: inv.createdAt,
         expiresAt: inv.expiresAt,
         acceptedAt: DateTime.now(),
+        sharingPermissions: inv.sharingPermissions,
+        passcode: inv.passcode,
       );
 
-      // Add to local members
+      final initialSharing = inv.sharingPermissions;
+      // Add to local members with sovereign default-OFF or configured permissions
       _members.add(FamilyMember(
         id: 'member_${DateTime.now().millisecondsSinceEpoch}',
         name: inv.inviteeEmail.split('@').first,
@@ -268,7 +277,13 @@ class LocalFamilyRepository implements FamilyRepository {
         avatarUrl: '',
         role: FamilyRole.member,
         checkInStatus: CheckInStatus.pendingToday,
-        sharingPermission: SharingPermission(lastUpdated: DateTime.now()),
+        sharingPermission: SharingPermission(
+          shareCheckInStatus: initialSharing['shareCheckInStatus'] ?? false,
+          shareSelfReportedMood: initialSharing['shareSelfReportedMood'] ?? false,
+          shareVitalsMeasurements: initialSharing['shareVitalsMeasurements'] ?? false,
+          shareNotes: initialSharing['shareNotes'] ?? false,
+          lastUpdated: DateTime.now(),
+        ),
       ));
       _membersController.add(List.unmodifiable(_members));
     }

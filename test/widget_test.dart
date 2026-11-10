@@ -10,8 +10,8 @@ void main() {
       ),
     );
 
-    // Verify splash elements
-    expect(find.text('caren'), findsOneWidget);
+    // Verify splash elements (brand icon, wordmark, and tagline)
+    expect(find.bySemanticsLabel('caren'), findsOneWidget);
     expect(find.text('Care, closer.'), findsOneWidget);
 
     // Let timer tick

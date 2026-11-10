@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -27,10 +29,12 @@ class EmergencySessionScreen extends ConsumerStatefulWidget {
   const EmergencySessionScreen({super.key, this.sessionId});
 
   @override
-  ConsumerState<EmergencySessionScreen> createState() => _EmergencySessionScreenState();
+  ConsumerState<EmergencySessionScreen> createState() =>
+      _EmergencySessionScreenState();
 }
 
-class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen> {
+class _EmergencySessionScreenState
+    extends ConsumerState<EmergencySessionScreen> {
   AssistSession? _session;
   final TextEditingController _customNoteController = TextEditingController();
   bool _isConsentedToSpotCheck = false;
@@ -50,7 +54,9 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
     _vitalsSub?.cancel();
     if (_isMeasuring) {
       try {
-        ref.read(vitalsProvider).stopMeasurement(
+        ref
+            .read(vitalsProvider)
+            .stopMeasurement(
               markInterrupted: true,
               interruptionReason: 'Navigated away from Emergency Session',
             );
@@ -64,7 +70,8 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
     final session = await ref.read(assistRepositoryProvider).getActiveSession();
     if (mounted) {
       setState(() {
-        _session = session ??
+        _session =
+            session ??
             AssistSession(
               id: widget.sessionId ?? 'ast_default',
               startTime: DateTime.now(),
@@ -92,7 +99,7 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
       builder: (ctx) => AlertDialog(
         title: Text('Contact Emergency ($emergencyNumber)'),
         content: Text(
-          'Are you sure you want to open the dialer for $emergencyNumber ($country)?\n\nCAREN will never place a call automatically.',
+          'Are you sure you want to open the dialer for $emergencyNumber ($country)?\n\ncaren will never place a call automatically.',
           style: AppTypography.bodyMedium,
         ),
         actions: [
@@ -104,7 +111,10 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             icon: const Icon(Icons.phone, color: Colors.white, size: 18),
             onPressed: () => Navigator.pop(ctx, true),
-            label: Text('Open Dialer ($emergencyNumber)', style: const TextStyle(color: Colors.white)),
+            label: Text(
+              'Open Dialer ($emergencyNumber)',
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -112,26 +122,38 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
 
     if (confirmed == true && context.mounted) {
       if (_session != null) {
-        await ref.read(assistRepositoryProvider).logEmergencyServicesContacted(_session!.id);
-        final updated = await ref.read(assistRepositoryProvider).getActiveSession();
+        await ref
+            .read(assistRepositoryProvider)
+            .logEmergencyServicesContacted(_session!.id);
+        final updated = await ref
+            .read(assistRepositoryProvider)
+            .getActiveSession();
         if (mounted && updated != null) {
           setState(() => _session = updated);
         }
       }
 
-      final result = await ref.read(emergencyDialerServiceProvider).launchDialer(emergencyNumber);
+      final result = await ref
+          .read(emergencyDialerServiceProvider)
+          .launchDialer(emergencyNumber);
       if (!result.isSuccess && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.danger,
-            content: Text(result.errorMessage ?? 'Could not launch dialer for $emergencyNumber.'),
+            content: Text(
+              result.errorMessage ??
+                  'Could not launch dialer for $emergencyNumber.',
+            ),
           ),
         );
       }
     }
   }
 
-  void _addQuickObservation(AssistObservationCategory category, String text) async {
+  void _addQuickObservation(
+    AssistObservationCategory category,
+    String text,
+  ) async {
     if (_session == null) return;
     final obs = AssistObservation(
       id: 'obs_${DateTime.now().millisecondsSinceEpoch}',
@@ -213,14 +235,22 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
   String _generateHandoffSummaryText() {
     if (_session == null) return '';
     final buffer = StringBuffer();
-    buffer.writeln('=== CAREN INCIDENT HANDOFF SUMMARY ===');
-    buffer.writeln('Start Time: ${AppFormatters.formatTime(_session!.startTime)}');
-    buffer.writeln('Emergency Called: ${_session!.calledEmergencyServices ? "YES" : "NO"}');
+    buffer.writeln('=== caren INCIDENT HANDOFF SUMMARY ===');
+    buffer.writeln(
+      'Start Time: ${AppFormatters.formatTime(_session!.startTime)}',
+    );
+    buffer.writeln(
+      'Emergency Called: ${_session!.calledEmergencyServices ? "YES" : "NO"}',
+    );
     buffer.writeln('\nTimeline of Observations:');
     for (final obs in _session!.observations) {
-      buffer.writeln('- [${AppFormatters.formatTime(obs.timestamp)}] (${obs.categoryTitle}): ${obs.description}');
+      buffer.writeln(
+        '- [${AppFormatters.formatTime(obs.timestamp)}] (${obs.categoryTitle}): ${obs.description}',
+      );
     }
-    buffer.writeln('\nDisclaimer: Factual observational timeline only. Not a medical diagnosis.');
+    buffer.writeln(
+      '\nDisclaimer: Factual observational timeline only. Not a medical diagnosis.',
+    );
     return buffer.toString();
   }
 
@@ -232,7 +262,9 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
       isScrollControlled: true,
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.radiusLg),
+        ),
       ),
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.7,
@@ -247,7 +279,10 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Incident Handoff Summary', style: AppTypography.titleLarge),
+                  const Text(
+                    'Incident Handoff Summary',
+                    style: AppTypography.titleLarge,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(ctx),
@@ -262,8 +297,7 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
               const SizedBox(height: AppSpacing.md),
               const SimulatedBanner(
                 title: 'OBSERVATIONAL TIMELINE ONLY',
-                message:
-                    'This summary is a factual record of user notes and observations. It does not constitute a triage recommendation or diagnostic record.',
+                message: 'This summary is a factual record of user notes and observations. It does not constitute a triage recommendation or diagnostic record.',
               ),
               const SizedBox(height: AppSpacing.md),
               Row(
@@ -274,45 +308,59 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                     icon: const Icon(Icons.copy, size: 16),
                     label: const Text('Copy Notes'),
                     onPressed: () {
-                      Clipboard.setData(ClipboardData(text: _generateHandoffSummaryText()));
+                      Clipboard.setData(
+                        ClipboardData(text: _generateHandoffSummaryText()),
+                      );
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Handoff summary copied to clipboard.')),
+                        const SnackBar(
+                          content: Text('Handoff summary copied to clipboard.'),
+                        ),
                       );
                     },
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
-              ..._session!.observations.map((obs) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${AppFormatters.formatTime(obs.timestamp)} - ',
-                          style: AppTypography.caption.copyWith(fontWeight: FontWeight.w700),
+              ..._session!.observations.map(
+                (obs) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${AppFormatters.formatTime(obs.timestamp)} - ',
+                        style: AppTypography.caption.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
-                        Expanded(
-                          child: Text(
-                            '[${obs.categoryTitle}] ${obs.description}',
-                            style: AppTypography.bodyMedium,
-                          ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '[${obs.categoryTitle}] ${obs.description}',
+                          style: AppTypography.bodyMedium,
                         ),
-                      ],
-                    ),
-                  )),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: AppSpacing.lg),
               CarenButton(
                 label: 'Conclude and Archive Session',
                 onPressed: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   final router = GoRouter.of(context);
-                  await ref.read(assistRepositoryProvider).completeSession(_session!.id);
+                  await ref
+                      .read(assistRepositoryProvider)
+                      .completeSession(_session!.id);
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (!mounted) return;
                   router.go('/emergency');
                   messenger.showSnackBar(
-                    const SnackBar(content: Text('Emergency assistance session concluded and archived.')),
+                    const SnackBar(
+                      content: Text(
+                        'Emergency assistance session concluded and archived.',
+                      ),
+                    ),
                   );
                 },
               ),
@@ -326,14 +374,14 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
   @override
   Widget build(BuildContext context) {
     if (_session == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Active Session • ${AppFormatters.formatTime(_session!.startTime)}'),
+        title: Text(
+          'Active Session • ${AppFormatters.formatTime(_session!.startTime)}',
+        ),
         actions: [
           TextButton(
             onPressed: _showHandoffDialog,
@@ -351,7 +399,8 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
               builder: (context, ref, child) {
                 final profileAsync = ref.watch(userProfileProvider);
                 final emergencyNumber =
-                    profileAsync.asData?.value.emergencyNumber ?? EmergencyDirectory.fallbackNumber;
+                    profileAsync.asData?.value.emergencyNumber ??
+                    EmergencyDirectory.fallbackNumber;
                 final country = profileAsync.asData?.value.country ?? 'India';
 
                 return CarenCard(
@@ -362,7 +411,11 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.emergency_rounded, color: AppColors.danger, size: 28),
+                          const Icon(
+                            Icons.emergency_rounded,
+                            color: AppColors.danger,
+                            size: 28,
+                          ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Column(
@@ -370,7 +423,9 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                               children: [
                                 Text(
                                   'Immediate Need? ($emergencyNumber)',
-                                  style: AppTypography.labelLarge.copyWith(fontWeight: FontWeight.bold),
+                                  style: AppTypography.labelLarge.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 Text(
                                   'Contact dispatchers ($country) if condition changes.',
@@ -395,7 +450,12 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                             'Call Emergency ($emergencyNumber)',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          onPressed: () => _handleEmergencyCall(context, ref, emergencyNumber, country),
+                          onPressed: () => _handleEmergencyCall(
+                            context,
+                            ref,
+                            emergencyNumber,
+                            country,
+                          ),
                         ),
                       ),
                     ],
@@ -413,7 +473,10 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
               runSpacing: 8,
               children: [
                 ActionChip(
-                  avatar: const Icon(Icons.accessibility_new_outlined, size: 16),
+                  avatar: const Icon(
+                    Icons.accessibility_new_outlined,
+                    size: 16,
+                  ),
                   label: const Text('Responsive & Alert'),
                   onPressed: () => _addQuickObservation(
                     AssistObservationCategory.responsiveness,
@@ -421,7 +484,10 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                   ),
                 ),
                 ActionChip(
-                  avatar: const Icon(Icons.airline_seat_flat_outlined, size: 16),
+                  avatar: const Icon(
+                    Icons.airline_seat_flat_outlined,
+                    size: 16,
+                  ),
                   label: const Text('Resting Comfortably'),
                   onPressed: () => _addQuickObservation(
                     AssistObservationCategory.physicalComfort,
@@ -458,9 +524,14 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                       hintText: 'Add timestamped note or action...',
                       filled: true,
                       fillColor: AppColors.surface,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                         borderSide: const BorderSide(color: AppColors.border),
                       ),
                     ),
@@ -483,7 +554,10 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.videocam_outlined, color: AppColors.primary),
+                      const Icon(
+                        Icons.videocam_outlined,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
@@ -510,7 +584,8 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
                       ),
                       value: _isConsentedToSpotCheck,
                       activeColor: AppColors.primary,
-                      onChanged: (v) => setState(() => _isConsentedToSpotCheck = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _isConsentedToSpotCheck = v ?? false),
                     ),
                   ),
                   if (_isConsentedToSpotCheck) ...[
@@ -545,7 +620,10 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
             const SizedBox(height: AppSpacing.lg),
 
             // Observations Timeline
-            Text('Session Timeline (${_session!.observations.length})', style: AppTypography.titleMedium),
+            Text(
+              'Session Timeline (${_session!.observations.length})',
+              style: AppTypography.titleMedium,
+            ),
             const SizedBox(height: AppSpacing.xs),
             ListView.separated(
               shrinkWrap: true,
@@ -555,22 +633,33 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
               itemBuilder: (context, index) {
                 final obs = _session!.observations.reversed.toList()[index];
                 return CarenCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         AppFormatters.formatTime(obs.timestamp),
-                        style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600),
+                        style: AppTypography.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            StatusBadge(label: obs.categoryTitle, type: BadgeType.neutral),
+                            StatusBadge(
+                              label: obs.categoryTitle,
+                              type: BadgeType.neutral,
+                            ),
                             const SizedBox(height: 2),
-                            Text(obs.description, style: AppTypography.bodyMedium),
+                            Text(
+                              obs.description,
+                              style: AppTypography.bodyMedium,
+                            ),
                           ],
                         ),
                       ),
@@ -586,4 +675,3 @@ class _EmergencySessionScreenState extends ConsumerState<EmergencySessionScreen>
     );
   }
 }
-

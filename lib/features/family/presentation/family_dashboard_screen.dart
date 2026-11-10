@@ -41,7 +41,8 @@ class FamilyDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: CarenAppBar(
-        title: 'Family',
+        title: 'caren',
+        useBrandWordmark: true,
         showProfileButton: true,
         actions: [
           IconButton(
@@ -164,7 +165,7 @@ class FamilyDashboardScreen extends ConsumerWidget {
                             label: 'Invite Family Member',
                             icon: Icons.person_add_alt_1,
                             variant: CarenButtonVariant.outline,
-                            onPressed: () => context.push('/family/members'),
+                            onPressed: () => context.push('/family/invite'),
                           ),
                         ],
                       ),

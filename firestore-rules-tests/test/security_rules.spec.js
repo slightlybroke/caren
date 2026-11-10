@@ -9,7 +9,7 @@ const path = require("path");
 
 const PROJECT_ID = "caren-app-test";
 
-describe("CAREN Firestore Security Rules - Emulator Verification", () => {
+describe("caren Firestore Security Rules - Emulator Verification", () => {
   let testEnv;
 
   before(async () => {

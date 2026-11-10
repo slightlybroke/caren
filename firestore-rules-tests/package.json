@@ -1,7 +1,7 @@
 {
   "name": "caren-firestore-rules-tests",
   "version": "1.0.0",
-  "description": "Firestore security rules integration tests for CAREN",
+  "description": "Firestore security rules integration tests for caren",
   "main": "index.js",
   "scripts": {
     "test": "mocha --timeout 20000 test/**/*.spec.js"

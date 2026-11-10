@@ -9,27 +9,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:caren/features/diagnostics/presentation/diagnostics_screen.dart';
 
 void main() {
-  group('CAREN Core UI Widgets Tests', () {
-    testWidgets('CarenButton renders with correct label and triggers onPressed', (tester) async {
-      bool pressed = false;
+  group('caren Core UI Widgets Tests', () {
+    testWidgets(
+      'CarenButton renders with correct label and triggers onPressed',
+      (tester) async {
+        bool pressed = false;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: CarenButton(
-              label: 'Start Check-In',
-              onPressed: () => pressed = true,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: CarenButton(
+                label: 'Start Check-In',
+                onPressed: () => pressed = true,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Start Check-In'), findsOneWidget);
-      await tester.tap(find.text('Start Check-In'));
-      expect(pressed, isTrue);
-    });
+        expect(find.text('Start Check-In'), findsOneWidget);
+        await tester.tap(find.text('Start Check-In'));
+        expect(pressed, isTrue);
+      },
+    );
 
-    testWidgets('CarenButton displays loader when isLoading is true', (tester) async {
+    testWidgets('CarenButton displays loader when isLoading is true', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -46,7 +51,9 @@ void main() {
       expect(find.text('Submit'), findsNothing);
     });
 
-    testWidgets('CarenCard displays child content and handles onTap', (tester) async {
+    testWidgets('CarenCard displays child content and handles onTap', (
+      tester,
+    ) async {
       bool tapped = false;
 
       await tester.pumpWidget(
@@ -84,72 +91,78 @@ void main() {
 
     testWidgets('SimulatedBanner renders prominent disclaimer', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: SimulatedBanner(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: SimulatedBanner())),
       );
 
       expect(find.text('SIMULATED DATA (MOCK VITAL SIGNS)'), findsOneWidget);
       expect(find.byIcon(Icons.science_outlined), findsOneWidget);
     });
 
-    testWidgets('CarenPermissionDeniedView displays camera rationale and grant button', (tester) async {
-      bool granted = false;
+    testWidgets(
+      'CarenPermissionDeniedView displays camera rationale and grant button',
+      (tester) async {
+        bool granted = false;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: CarenPermissionDeniedView(
-              onGrantPermission: () => granted = true,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: CarenPermissionDeniedView(
+                onGrantPermission: () => granted = true,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Camera Access Needed for Measurement'), findsOneWidget);
-      await tester.tap(find.text('Grant Camera Access'));
-      expect(granted, isTrue);
-    });
+        expect(
+          find.text('Camera Access Needed for Measurement'),
+          findsOneWidget,
+        );
+        await tester.tap(find.text('Grant Camera Access'));
+        expect(granted, isTrue);
+      },
+    );
 
-    testWidgets('CarenPermissionDeniedView with isPermanentlyDenied triggers onOpenSettings', (tester) async {
-      bool settingsOpened = false;
+    testWidgets(
+      'CarenPermissionDeniedView with isPermanentlyDenied triggers onOpenSettings',
+      (tester) async {
+        bool settingsOpened = false;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: CarenPermissionDeniedView(
-              isPermanentlyDenied: true,
-              onGrantPermission: () {},
-              onOpenSettings: () => settingsOpened = true,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: CarenPermissionDeniedView(
+                isPermanentlyDenied: true,
+                onGrantPermission: () {},
+                onOpenSettings: () => settingsOpened = true,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Open Android Settings'), findsOneWidget);
-      await tester.tap(find.text('Open Android Settings'));
-      expect(settingsOpened, isTrue);
-    });
+        expect(find.text('Open Android Settings'), findsOneWidget);
+        await tester.tap(find.text('Open Android Settings'));
+        expect(settingsOpened, isTrue);
+      },
+    );
 
-    testWidgets('DiagnosticsScreen renders developer controls and mode indicators', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: DiagnosticsScreen(),
-          ),
-        ),
-      );
+    testWidgets(
+      'DiagnosticsScreen renders developer controls and mode indicators',
+      (tester) async {
+        await tester.pumpWidget(
+          const ProviderScope(child: MaterialApp(home: DiagnosticsScreen())),
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Developer Diagnostics'), findsOneWidget);
-      expect(find.text('Live Measurement Console'), findsOneWidget);
-      expect(find.text('Start Live Measurement'), findsOneWidget);
-      expect(find.text('SDK Runtime Lifecycle & Architecture'), findsOneWidget);
-    });
+        expect(find.text('Developer Diagnostics'), findsOneWidget);
+        expect(find.text('Live Measurement Console'), findsOneWidget);
+        expect(find.text('Start Live Measurement'), findsOneWidget);
+        expect(
+          find.text('SDK Runtime Lifecycle & Architecture'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }
-

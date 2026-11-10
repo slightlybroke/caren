@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../features/authentication/data/auth_repository.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/registration_screen.dart';
@@ -8,6 +9,7 @@ import '../../features/dashboard/presentation/main_scaffold_screen.dart';
 import '../../features/diagnostics/presentation/diagnostics_screen.dart';
 import '../../features/emergency/presentation/emergency_landing_screen.dart';
 import '../../features/emergency/presentation/emergency_session_screen.dart';
+import '../../features/family/presentation/add_member_wizard_screen.dart';
 import '../../features/family/presentation/daily_check_in_screen.dart';
 import '../../features/family/presentation/family_dashboard_screen.dart';
 import '../../features/family/presentation/family_member_detail_screen.dart';
@@ -25,17 +27,15 @@ import '../../features/wellness/presentation/me_dashboard_screen.dart';
 import '../../features/wellness/presentation/personal_history_screen.dart';
 import '../../services/vitals/vitals_models.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
 
-/// Builds routes list for CAREN
+/// Builds routes list for caren
 List<RouteBase> _buildRoutes() {
   return [
     // 1. Splash Screen
-    GoRoute(
-      path: '/splash',
-      builder: (context, state) => const SplashScreen(),
-    ),
+    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
 
     // 2. Welcome / Onboarding Screen
     GoRoute(
@@ -44,10 +44,7 @@ List<RouteBase> _buildRoutes() {
     ),
 
     // 3. Login Screen
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
 
     // 4. Registration Screen
     GoRoute(
@@ -56,21 +53,17 @@ List<RouteBase> _buildRoutes() {
     ),
 
     // Legacy / Convenience Dashboard Redirect -> /family
-    GoRoute(
-      path: '/dashboard',
-      redirect: (context, state) => '/family',
-    ),
+    GoRoute(path: '/dashboard', redirect: (context, state) => '/family'),
 
     // Legacy / Convenience Assist Redirect -> /emergency
-    GoRoute(
-      path: '/assist',
-      redirect: (context, state) => '/emergency',
-    ),
+    GoRoute(path: '/assist', redirect: (context, state) => '/emergency'),
     GoRoute(
       path: '/assist/session',
       redirect: (context, state) {
         final sessionId = state.uri.queryParameters['sessionId'];
-        return sessionId != null ? '/emergency/session?sessionId=$sessionId' : '/emergency/session';
+        return sessionId != null
+            ? '/emergency/session?sessionId=$sessionId'
+            : '/emergency/session';
       },
     ),
 
@@ -95,6 +88,11 @@ List<RouteBase> _buildRoutes() {
     ),
 
     // Child routes that can be pushed on top of root navigator
+    GoRoute(
+      path: '/family/invite',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AddMemberWizardScreen(),
+    ),
     GoRoute(
       path: '/family/check-in',
       parentNavigatorKey: _rootNavigatorKey,
@@ -135,8 +133,8 @@ List<RouteBase> _buildRoutes() {
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        final activity = WellnessCatalog.findById(id) ??
-            WellnessCatalog.fiveSensesGrounding;
+        final activity =
+            WellnessCatalog.findById(id) ?? WellnessCatalog.fiveSensesGrounding;
         return GuidedActivityScreen(activity: activity);
       },
     ),
@@ -225,7 +223,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final loc = state.matchedLocation;
       final isAuth = authUser != null;
 
-      final isPublic = loc == '/splash' ||
+      final isPublic =
+          loc == '/splash' ||
           loc == '/onboarding' ||
           loc == '/login' ||
           loc == '/register' ||
@@ -237,7 +236,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // If authenticated and trying to access login/register/dashboard, redirect to /family
-      if (isAuth && (loc == '/login' || loc == '/register' || loc == '/dashboard')) {
+      if (isAuth &&
+          (loc == '/login' || loc == '/register' || loc == '/dashboard')) {
         return '/family';
       }
 

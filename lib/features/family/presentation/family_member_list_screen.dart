@@ -14,96 +14,6 @@ import '../domain/family_member.dart';
 class FamilyMemberListScreen extends ConsumerWidget {
   const FamilyMemberListScreen({super.key});
 
-  void _showInviteDialog(BuildContext context, WidgetRef ref) {
-    final relationController = TextEditingController();
-    final emailController = TextEditingController();
-    bool isSending = false;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text('Invite a Family Member'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: relationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Relationship (e.g. Mother, Father, Child)',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email address of invitee',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'An invitation valid for 7 days will be sent. Family participation is completely voluntary and check-in sharing permissions can be configured independently by each member.',
-                    style: AppTypography.caption,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: isSending
-                    ? null
-                    : () async {
-                        final email = emailController.text.trim();
-                        final relation = relationController.text.trim();
-                        if (email.isEmpty || relation.isEmpty) return;
-
-                        setDialogState(() => isSending = true);
-                        try {
-                          await ref.read(familyRepositoryProvider).sendInvitation(
-                                inviteeEmail: email,
-                                relationship: relation,
-                              );
-                          if (context.mounted) {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Invitation sent to $email.'),
-                              ),
-                            );
-                            ref.invalidate(familyMembersProvider);
-                            ref.invalidate(sentInvitationsProvider);
-                          }
-                        } catch (e) {
-                          setDialogState(() => isSending = false);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      },
-                child: isSending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Send Invitation'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final familyAsync = ref.watch(familyMembersProvider);
@@ -117,7 +27,7 @@ class FamilyMemberListScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Invite Member',
             icon: const Icon(Icons.person_add_alt_1_outlined),
-            onPressed: () => _showInviteDialog(context, ref),
+            onPressed: () => context.push('/family/invite'),
           ),
         ],
       ),
@@ -222,7 +132,7 @@ class FamilyMemberListScreen extends ConsumerWidget {
                             label: 'Invite a Family Member',
                             icon: Icons.add,
                             variant: CarenButtonVariant.outline,
-                            onPressed: () => _showInviteDialog(context, ref),
+                            onPressed: () => context.push('/family/invite'),
                           ),
                         ],
                       ),
@@ -243,7 +153,7 @@ class FamilyMemberListScreen extends ConsumerWidget {
                           label: 'Invite Another Family Member',
                           icon: Icons.add,
                           variant: CarenButtonVariant.outline,
-                          onPressed: () => _showInviteDialog(context, ref),
+                          onPressed: () => context.push('/family/invite'),
                         ),
                       );
                     }

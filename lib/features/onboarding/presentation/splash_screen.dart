@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_branding.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -33,40 +34,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(30),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withAlpha(50), width: 2),
-              ),
-              child: const Icon(
-                Icons.favorite_outline_rounded,
-                size: 46,
-                color: Colors.white,
+            Image.asset(
+              AppBranding.icon,
+              width: 84,
+              height: 84,
+              fit: BoxFit.contain,
+              semanticLabel: 'caren emblem',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Hero(
+              tag: 'caren_brand_wordmark',
+              child: Image.asset(
+                AppBranding.wordmark,
+                height: 40,
+                fit: BoxFit.contain,
+                semanticLabel: 'caren',
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'caren',
-              style: AppTypography.displayLarge.copyWith(
-                color: Colors.white,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               'Care, closer.',
               style: AppTypography.titleMedium.copyWith(
-                color: AppColors.secondaryLight,
-                fontWeight: FontWeight.w400,
+                color: AppColors.secondary,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 0.5,
               ),
             ),

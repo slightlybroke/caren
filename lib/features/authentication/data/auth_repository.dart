@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,7 +8,7 @@ import '../../../services/firebase/firebase_service.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_user.dart';
 
-/// Contract for authentication operations in CAREN.
+/// Contract for authentication operations in caren.
 abstract class AuthRepository {
   Stream<AuthUser?> get authStateChanges;
   AuthUser? get currentUser;
@@ -26,7 +28,7 @@ class FirebaseAuthRepository implements AuthRepository {
   final fb.FirebaseAuth _firebaseAuth;
 
   FirebaseAuthRepository([fb.FirebaseAuth? firebaseAuth])
-      : _firebaseAuth = firebaseAuth ?? fb.FirebaseAuth.instance;
+    : _firebaseAuth = firebaseAuth ?? fb.FirebaseAuth.instance;
 
   AuthUser? _mapUser(fb.User? user) {
     if (user == null) return null;
@@ -48,7 +50,9 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<AuthUser> signInWithEmailAndPassword(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     try {
       final credential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email.trim(),
@@ -56,7 +60,9 @@ class FirebaseAuthRepository implements AuthRepository {
       );
       final user = _mapUser(credential.user);
       if (user == null) {
-        throw const AuthFailure(message: 'Sign in succeeded but user was null.');
+        throw const AuthFailure(
+          message: 'Sign in succeeded but user was null.',
+        );
       }
       return user;
     } on fb.FirebaseAuthException catch (e) {
@@ -84,7 +90,8 @@ class FirebaseAuthRepository implements AuthRepository {
       final user = _mapUser(_firebaseAuth.currentUser ?? credential.user);
       if (user == null) {
         throw const AuthFailure(
-            message: 'Registration succeeded but user was null.');
+          message: 'Registration succeeded but user was null.',
+        );
       }
       return user;
     } on fb.FirebaseAuthException catch (e) {
@@ -121,6 +128,16 @@ class FirebaseAuthRepository implements AuthRepository {
     try {
       final user = _firebaseAuth.currentUser;
       if (user != null) {
+        final uid = user.uid;
+        // Clean up direct Firestore documents while user is still authenticated
+        try {
+          final firestore = FirebaseFirestore.instance;
+          await firestore.collection('users').doc(uid).collection('settings').doc('privacy').delete();
+          await firestore.collection('users').doc(uid).delete();
+        } catch (_) {
+          // If direct document cleanup encounters transient errors, proceed to auth deletion.
+          // Server-side Firebase Functions onDelete trigger provides authoritative idempotent reconciliation.
+        }
         await user.delete();
       }
     } on fb.FirebaseAuthException catch (e) {
@@ -147,13 +164,16 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<AuthUser> signInWithEmailAndPassword(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 50));
     final normalized = email.trim().toLowerCase();
     if (_passwords.containsKey(normalized) &&
         _passwords[normalized] != password) {
       throw const AuthFailure(
-        message: 'The email address or password entered does not match our records.',
+        message:
+            'The email address or password entered does not match our records.',
         code: 'INVALID_CREDENTIALS',
       );
     }
@@ -228,5 +248,6 @@ final authStateChangesProvider = StreamProvider<AuthUser?>((ref) {
 /// Synchronous access to current AuthUser, reactive to auth state changes.
 final currentUserProvider = Provider<AuthUser?>((ref) {
   final authAsync = ref.watch(authStateChangesProvider);
-  return authAsync.asData?.value ?? ref.watch(authRepositoryProvider).currentUser;
+  return authAsync.asData?.value ??
+      ref.watch(authRepositoryProvider).currentUser;
 });

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Categories of personal relaxation experiences in CAREN Me.
-enum WellnessCategory {
-  breathing,
-  mindfulness,
-  bodyRelaxation,
-  quietMoments,
-}
+/// Categories of personal relaxation experiences in caren Me.
+enum WellnessCategory { breathing, mindfulness, bodyRelaxation, quietMoments }
 
 extension WellnessCategoryExtension on WellnessCategory {
   String get displayName {
@@ -79,7 +74,7 @@ class WellnessActivity {
       steps.fold(0, (sum, step) => sum + step.durationSeconds);
 }
 
-/// Pre-configured relaxation activities for CAREN Me.
+/// Pre-configured relaxation activities for caren Me.
 class WellnessCatalog {
   WellnessCatalog._();
 
@@ -88,8 +83,7 @@ class WellnessCatalog {
     title: '5-4-3-2-1 Grounding',
     subtitle: 'Anchor your attention in your immediate surroundings',
     category: WellnessCategory.mindfulness,
-    description:
-        'A clinically recognized grounding technique to gently anchor yourself in the present moment by noticing sensory details around you.',
+    description: 'A clinically recognized grounding technique to gently anchor yourself in the present moment by noticing sensory details around you.',
     icon: Icons.nature_people_outlined,
     defaultDurationMinutes: 3,
     steps: [
@@ -101,7 +95,8 @@ class WellnessCatalog {
       ),
       WellnessActivityStep(
         title: '5 Things You Can See',
-        instruction: 'Look around and notice 5 distinct objects, patterns, or colors.',
+        instruction:
+            'Look around and notice 5 distinct objects, patterns, or colors.',
         spokenCue: 'Notice five things you can see around you. Observe their shapes and colors.',
         durationSeconds: 24,
       ),
@@ -126,7 +121,8 @@ class WellnessCatalog {
       WellnessActivityStep(
         title: '1 Thing You Are Grateful For',
         instruction: 'Bring to mind one small comfort or moment from today.',
-        spokenCue: 'Bring to mind one small thing you are grateful for right now.',
+        spokenCue:
+            'Bring to mind one small thing you are grateful for right now.',
         durationSeconds: 18,
       ),
     ],
@@ -137,8 +133,7 @@ class WellnessCatalog {
     title: 'Present-Moment Awareness',
     subtitle: 'Calm mental chatter and rest in the now',
     category: WellnessCategory.mindfulness,
-    description:
-        'Gentle attention training to step back from rushing thoughts and cultivate spacious calm.',
+    description: 'Gentle attention training to step back from rushing thoughts and cultivate spacious calm.',
     icon: Icons.spa_outlined,
     defaultDurationMinutes: 3,
     steps: [
@@ -156,13 +151,15 @@ class WellnessCatalog {
       ),
       WellnessActivityStep(
         title: 'Observing Thoughts',
-        instruction: 'Let thoughts come and go like clouds passing through an open sky.',
+        instruction:
+            'Let thoughts come and go like clouds passing through an open sky.',
         spokenCue: 'Let thoughts drift by like clouds in an open sky. You do not need to follow them.',
         durationSeconds: 35,
       ),
       WellnessActivityStep(
         title: 'Returning',
-        instruction: 'Take one deep, appreciative breath as you prepare to return.',
+        instruction:
+            'Take one deep, appreciative breath as you prepare to return.',
         spokenCue: 'Take one deep, appreciative breath, and gently return your awareness.',
         durationSeconds: 20,
       ),
@@ -174,15 +171,16 @@ class WellnessCatalog {
     title: 'Progressive Muscle Relaxation',
     subtitle: 'Systematically release physical tension throughout the body',
     category: WellnessCategory.bodyRelaxation,
-    description:
-        'Guided tension and release cycles that signal deep safety to the autonomic nervous system.',
+    description: 'Guided tension and release cycles that signal deep safety to the autonomic nervous system.',
     icon: Icons.self_improvement_rounded,
     defaultDurationMinutes: 4,
     steps: [
       WellnessActivityStep(
         title: 'Begin',
-        instruction: 'Settle into a supported chair or lie down. Uncross your legs.',
-        spokenCue: 'Settle comfortably into your seat. Uncross your legs and relax.',
+        instruction:
+            'Settle into a supported chair or lie down. Uncross your legs.',
+        spokenCue:
+            'Settle comfortably into your seat. Uncross your legs and relax.',
         durationSeconds: 15,
       ),
       WellnessActivityStep(
@@ -206,7 +204,8 @@ class WellnessCatalog {
       WellnessActivityStep(
         title: 'Full Body Ease',
         instruction: 'Feel the warm, heavy sensation of relaxation flowing from head to toes.',
-        spokenCue: 'Feel a wave of calm and ease flowing through your entire body.',
+        spokenCue:
+            'Feel a wave of calm and ease flowing through your entire body.',
         durationSeconds: 30,
       ),
     ],
@@ -217,21 +216,22 @@ class WellnessCatalog {
     title: 'Shoulder & Jaw Decompression',
     subtitle: 'Targeted physical reset for screen fatigue and posture',
     category: WellnessCategory.bodyRelaxation,
-    description:
-        'A quick 2-minute targeted release for the areas that accumulate daily stress and screen posture fatigue.',
+    description: 'A quick 2-minute targeted release for the areas that accumulate daily stress and screen posture fatigue.',
     icon: Icons.accessibility_outlined,
     defaultDurationMinutes: 2,
     steps: [
       WellnessActivityStep(
         title: 'Shoulder Roll',
-        instruction: 'Roll your shoulders backward in slow, deliberate circles 3 times.',
+        instruction:
+            'Roll your shoulders backward in slow, deliberate circles 3 times.',
         spokenCue: 'Roll your shoulders backward in slow, deliberate circles.',
         durationSeconds: 25,
       ),
       WellnessActivityStep(
         title: 'Jaw Unclenching',
         instruction: 'Part your lips slightly. Let your tongue rest gently behind your upper teeth.',
-        spokenCue: 'Part your lips slightly. Let your jaw drop open comfortably.',
+        spokenCue:
+            'Part your lips slightly. Let your jaw drop open comfortably.',
         durationSeconds: 25,
       ),
       WellnessActivityStep(
@@ -254,20 +254,21 @@ class WellnessCatalog {
     title: 'Quiet Reflection',
     subtitle: 'A quiet, unhurried interval with gentle contemplation',
     category: WellnessCategory.quietMoments,
-    description:
-        'A peaceful interval free of demands. Minimalist timer with soothing contemplative prompts.',
+    description: 'A peaceful interval free of demands. Minimalist timer with soothing contemplative prompts.',
     icon: Icons.nights_stay_outlined,
     defaultDurationMinutes: 3,
     steps: [
       WellnessActivityStep(
         title: 'Quiet Beginning',
         instruction: 'Give yourself permission to pause. There is nowhere else you need to be.',
-        spokenCue: 'Give yourself permission to pause. Enjoy this quiet moment.',
+        spokenCue:
+            'Give yourself permission to pause. Enjoy this quiet moment.',
         durationSeconds: 30,
       ),
       WellnessActivityStep(
         title: 'Peaceful Space',
-        instruction: 'Notice the quiet rhythm of your breath as time unfolds gently.',
+        instruction:
+            'Notice the quiet rhythm of your breath as time unfolds gently.',
         spokenCue: 'Notice the gentle stillness around you.',
         durationSeconds: 60,
       ),
@@ -288,12 +289,12 @@ class WellnessCatalog {
   );
 
   static List<WellnessActivity> get allActivities => [
-        fiveSensesGrounding,
-        presentMomentMindfulness,
-        progressiveMuscleRelaxation,
-        shoulderJawRelease,
-        quietReflection,
-      ];
+    fiveSensesGrounding,
+    presentMomentMindfulness,
+    progressiveMuscleRelaxation,
+    shoulderJawRelease,
+    quietReflection,
+  ];
 
   static List<WellnessActivity> getActivitiesByCategory(WellnessCategory cat) =>
       allActivities.where((a) => a.category == cat).toList();
@@ -306,4 +307,3 @@ class WellnessCatalog {
     }
   }
 }
-

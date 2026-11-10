@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Represents a Family Circle group in CAREN.
+/// Represents a Family Circle group in caren.
 class FamilyCircle {
   final String id;
   final String name;
@@ -25,7 +25,9 @@ class FamilyCircle {
     };
   }
 
-  factory FamilyCircle.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory FamilyCircle.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data() ?? {};
     final timestamp = data['createdAt'] as Timestamp?;
     return FamilyCircle(
@@ -37,4 +39,3 @@ class FamilyCircle {
     );
   }
 }
-

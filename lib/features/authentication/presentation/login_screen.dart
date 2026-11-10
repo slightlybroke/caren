@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,9 +6,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_button.dart';
+import '../../../core/widgets/caren_password_field.dart';
 import '../../../core/widgets/caren_text_field.dart';
 import '../../../services/firebase/firebase_service.dart';
 import 'controllers/auth_controller.dart';
+import 'widgets/auth_brand_header.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -69,17 +72,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              backgroundColor: AppColors.cardBackground,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
               ),
-              title: const Text('Reset Password'),
+              title: Text(
+                'Reset Password',
+                style: AppTypography.titleLarge.copyWith(color: AppColors.primaryDark),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Enter your registered email address to receive a secure password reset link.',
-                    style: AppTypography.bodySmall,
+                    'Enter your account email address. We will send you a secure link to reset your password.',
+                    style: AppTypography.bodyMedium,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   CarenTextField(
@@ -87,6 +94,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     hint: 'you@example.com',
                     controller: _resetEmailController,
                     keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
                   ),
                   if (dialogMessage != null) ...[
                     const SizedBox(height: AppSpacing.sm),
@@ -125,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             setDialogState(() {
                               sending = false;
                               dialogMessage =
-                                  'Password reset link sent! Check your inbox.';
+                                   'Password reset link sent! Check your inbox.';
                             });
                           } catch (e) {
                             setDialogState(() {
@@ -158,9 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Sign In'),
-      ),
+      appBar: const AuthBrandHeader(showBackButton: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: AppSpacing.screenPadding,
@@ -191,16 +198,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
+
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 'Welcome back',
-                style: AppTypography.displayMedium.copyWith(color: AppColors.primaryDark),
+                style: AppTypography.displayMedium.copyWith(
+                  color: AppColors.primaryDark,
+                  letterSpacing: -0.5,
+                ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Check in with your family and continue your personal wellness journey.',
-                style: AppTypography.bodyMedium,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.xl),
+
               if (_errorMessage != null) ...[
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.sm),
@@ -224,39 +239,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
+
               CarenTextField(
                 label: 'Email address',
                 hint: 'you@example.com',
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                textInputAction: TextInputAction.next,
                 prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
               ),
               const SizedBox(height: AppSpacing.md),
-              CarenTextField(
+
+              CarenPasswordField(
                 label: 'Password',
                 hint: 'Your password',
                 controller: _passwordController,
-                obscureText: true,
-                prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                autofillHints: const [AutofillHints.password],
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _handleLogin(),
               ),
               const SizedBox(height: AppSpacing.xs),
+
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: _showPasswordResetDialog,
                   child: Text(
                     'Forgot password?',
-                    style: AppTypography.labelMedium.copyWith(color: AppColors.primary),
+                    style: AppTypography.labelMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
+
               CarenButton(
                 label: 'Sign In',
                 isLoading: isLoading,
                 onPressed: _handleLogin,
               ),
               const SizedBox(height: AppSpacing.lg),
+
               Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -266,23 +292,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onTap: () => context.go('/register'),
                       child: Text(
                         'Create an account',
-                        style: AppTypography.labelLarge.copyWith(color: AppColors.primary),
+                        style: AppTypography.labelLarge.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              Center(
-                child: TextButton.icon(
-                  icon: const Icon(Icons.bug_report_outlined, size: 18),
-                  label: const Text('Developer Diagnostics (Direct SDK Testing)'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+
+              if (kDebugMode) ...[
+                const SizedBox(height: AppSpacing.xl),
+                Center(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.bug_report_outlined, size: 18),
+                    label: const Text('Developer Diagnostics (Direct SDK Testing)'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                    ),
+                    onPressed: () => context.push('/diagnostics'),
                   ),
-                  onPressed: () => context.push('/diagnostics'),
                 ),
-              ),
+              ],
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),
