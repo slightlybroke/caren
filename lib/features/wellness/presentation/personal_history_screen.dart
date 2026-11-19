@@ -1,12 +1,12 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/caren_card.dart';
-import '../../../core/widgets/simulated_banner.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../data/wellness_repository.dart';
 
@@ -21,6 +21,17 @@ class PersonalHistoryScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Personal History & Trends'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/me');
+            }
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.screenPadding,
@@ -47,13 +58,7 @@ class PersonalHistoryScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-
-            const SimulatedBanner(
-              title: 'SIMULATED HISTORICAL TRENDS',
-              message: 'The sample trend chart below uses mock data for demonstration.',
-            ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.sm),
 
             // Weekly Trend Chart
             Text(

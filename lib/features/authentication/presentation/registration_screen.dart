@@ -182,7 +182,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
                 CarenTextField(
                   label: 'Full Name',
-                  hint: 'e.g. Eleanor Vance',
+                  hint: 'e.g. Eleanor Doe',
                   controller: _nameController,
                   autofillHints: const [AutofillHints.name],
                   textInputAction: TextInputAction.next,

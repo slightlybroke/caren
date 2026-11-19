@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -19,6 +20,17 @@ class PrivacyPermissionsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Privacy & Sharing Permissions'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
       ),
       body: privacyAsync.when(
         data: (privacy) {

@@ -23,6 +23,17 @@ class FamilyMemberListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Family Circle'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/family');
+            }
+          },
+        ),
         actions: [
           IconButton(
             tooltip: 'Invite Member',

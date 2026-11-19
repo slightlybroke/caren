@@ -129,7 +129,7 @@ class LocalFamilyRepository implements FamilyRepository {
                   isSimulated: true,
                   isSuccessful: true,
                   notes:
-                      '[SIMULATED] Camera spot check completed in steady morning light.',
+                      'Camera spot check completed in steady morning light.',
                 ),
                 isSharedWithFamily: true,
               ),

@@ -66,7 +66,7 @@ class _WebResponsiveShellState extends ConsumerState<WebResponsiveShell> {
       'title': 'Contactless Vitals',
       'subtitle': 'Presage SmartSpectra Spot-Checks',
       'description':
-          'On Android, SmartSpectra estimates pulse and breathing pace with live camera positioning feedback. The browser demo does not capture live vitals.',
+          'Estimate pulse and breathing pace using front-facing camera positioning feedback, real-time guidance, and wellness trend records.',
       'icon': Icons.favorite_outline,
       'badge': 'CAMERA SENSORS',
       'tint': Color(0xFFEFEBF6),

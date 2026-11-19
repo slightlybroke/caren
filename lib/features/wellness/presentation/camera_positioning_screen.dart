@@ -11,9 +11,9 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_app_bar.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
-import '../../../core/widgets/simulated_banner.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/vitals_measurement_widget.dart';
+import '../../../core/widgets/web_camera_preview.dart';
 import '../../../services/vitals/vitals_models.dart';
 import '../../../services/vitals/vitals_provider.dart';
 
@@ -236,6 +236,12 @@ class _CameraPositioningScreenState
     return Scaffold(
       appBar: CarenAppBar(
         title: widget.title,
+        showProfileButton: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: _handleCancel,
+        ),
         actions: [
           TextButton(onPressed: _handleCancel, child: const Text('Cancel')),
         ],
@@ -392,11 +398,6 @@ class _CameraPositioningScreenState
 
     return Column(
       children: [
-        if (isSimulated) ...[
-          const SimulatedBanner(),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-
         // Live Front Camera Viewport with Positioning Guide Overlay
         Expanded(
           child: Container(
@@ -410,12 +411,14 @@ class _CameraPositioningScreenState
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Real Android Camera Preview or Mock Simulation
+                  // Real Android Camera Preview, Live Web Camera, or Ambient Sensor Viewfinder
                   if (!isSimulated &&
                       defaultTargetPlatform == TargetPlatform.android)
                     const AndroidView(
                       viewType: 'com.caren.app/smartspectra_camera_view',
                     )
+                  else if (kIsWeb)
+                    Positioned.fill(child: createWebCameraPreview())
                   else
                     Container(
                       decoration: BoxDecoration(
@@ -484,11 +487,9 @@ class _CameraPositioningScreenState
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      kIsWeb
-                                          ? 'Web Camera Simulation Active'
-                                          : 'Optical Sensor Active',
-                                      style: const TextStyle(
+                                    const Text(
+                                      'Optical Sensor Active',
+                                      style: TextStyle(
                                         color: Colors.white70,
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,

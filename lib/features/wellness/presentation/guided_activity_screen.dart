@@ -221,6 +221,17 @@ class _GuidedActivityScreenState extends ConsumerState<GuidedActivityScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.activity.title),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/me');
+            }
+          },
+        ),
         actions: [
           IconButton(
             tooltip: _isMuted ? 'Unmute voice guidance' : 'Mute voice guidance',

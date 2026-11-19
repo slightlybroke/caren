@@ -11,7 +11,6 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
-import '../../../core/widgets/simulated_banner.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../core/widgets/vitals_measurement_widget.dart';
 import '../../../services/emergency/emergency_dialer_service.dart';
@@ -294,10 +293,35 @@ class _EmergencySessionScreenState
                 'Session began at ${AppFormatters.formatTime(_session!.startTime)}',
                 style: AppTypography.caption,
               ),
-              const SizedBox(height: AppSpacing.md),
-              const SimulatedBanner(
-                title: 'OBSERVATIONAL TIMELINE ONLY',
-                message: 'This summary is a factual record of user notes and observations. It does not constitute a triage recommendation or diagnostic record.',
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: AppColors.textSecondary,
+                      size: 18,
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'This summary is a factual record of user notes and observations to assist first responders during medical handover.',
+                        style: AppTypography.caption,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Row(
@@ -381,6 +405,17 @@ class _EmergencySessionScreenState
       appBar: AppBar(
         title: Text(
           'Active Session • ${AppFormatters.formatTime(_session!.startTime)}',
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/emergency');
+            }
+          },
         ),
         actions: [
           TextButton(

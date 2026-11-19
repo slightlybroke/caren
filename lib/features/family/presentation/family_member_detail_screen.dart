@@ -40,6 +40,17 @@ class FamilyMemberDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Family Member'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/family');
+            }
+          },
+        ),
       ),
       body: memberAsync.when(
         data: (member) {

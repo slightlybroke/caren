@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/caren_card.dart';
-import '../../../core/widgets/simulated_banner.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../data/family_repository.dart';
 import '../domain/daily_check_in.dart';
@@ -23,6 +23,17 @@ class WellnessReportScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wellness Report'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/family');
+            }
+          },
+        ),
       ),
       body: historyAsync.when(
         data: (checkIns) {
@@ -30,7 +41,7 @@ class WellnessReportScreen extends ConsumerWidget {
               DailyCheckIn(
                 id: reportId,
                 userId: 'mem_1',
-                userName: 'Eleanor Vance',
+                userName: 'Eleanor Doe',
                 timestamp: DateTime.now().subtract(const Duration(hours: 3)),
                 feeling: WellnessFeeling.feelingWell,
                 sleep: SleepQuality.restful,
@@ -133,20 +144,14 @@ class WellnessReportScreen extends ConsumerWidget {
                     ),
                   )
                 else ...[
-                  if (checkIn.optionalMeasurement!.isSimulated) ...[
-                    const SimulatedBanner(),
-                    const SizedBox(height: AppSpacing.sm),
-                  ],
                   CarenCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Observed Spot Signals', style: AppTypography.titleMedium),
-                            if (checkIn.optionalMeasurement!.isSimulated)
-                              const StatusBadge(label: 'MOCK DATA', type: BadgeType.warning),
+                            Text('Observed Spot Signals', style: AppTypography.titleMedium),
                           ],
                         ),
                         const SizedBox(height: AppSpacing.md),

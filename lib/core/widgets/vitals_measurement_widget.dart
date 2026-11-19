@@ -4,7 +4,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_spacing.dart';
 import '../constants/app_typography.dart';
 import '../../services/vitals/vitals_models.dart';
-import 'simulated_banner.dart';
+import 'web_camera_preview.dart';
 
 class VitalsMeasurementWidget extends StatelessWidget {
   final VitalsStreamData? streamData;
@@ -59,12 +59,7 @@ class VitalsMeasurementWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isSimulated) ...[
-            const SimulatedBanner(),
-            const SizedBox(height: AppSpacing.md),
-          ],
-
-          // Camera Viewport: Real Android CameraX PreviewView or Mock Animation
+          // Camera Viewport: Real Android CameraX PreviewView, Web Cam, or Sensor Viewfinder
           Container(
             height: 220,
             width: double.infinity,
@@ -77,11 +72,13 @@ class VitalsMeasurementWidget extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Hardware Camera feed on Android, or ambient gradient simulation for mock/dev
+                  // Hardware Camera feed on Android, or live web camera preview on Web
                   if (!isSimulated && defaultTargetPlatform == TargetPlatform.android)
                     const AndroidView(
                       viewType: 'com.caren.app/smartspectra_camera_view',
                     )
+                  else if (kIsWeb)
+                    Positioned.fill(child: createWebCameraPreview())
                   else
                     Container(
                       decoration: BoxDecoration(

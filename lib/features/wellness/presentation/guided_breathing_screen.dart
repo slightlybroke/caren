@@ -364,6 +364,17 @@ class _GuidedBreathingScreenState extends ConsumerState<GuidedBreathingScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Guided Breathing'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/me');
+            }
+          },
+        ),
         actions: [
           IconButton(
             tooltip: _isMuted ? 'Unmute voice guidance' : 'Mute voice guidance',

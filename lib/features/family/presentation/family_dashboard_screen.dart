@@ -40,17 +40,10 @@ class FamilyDashboardScreen extends ConsumerWidget {
     final greetingText = name.isNotEmpty ? '$timeGreeting, $name' : timeGreeting;
 
     return Scaffold(
-      appBar: CarenAppBar(
+      appBar: const CarenAppBar(
         title: 'caren',
         useBrandWordmark: true,
         showProfileButton: true,
-        actions: [
-          IconButton(
-            tooltip: 'All Family Members',
-            icon: const Icon(Icons.people_outline_rounded),
-            onPressed: () => context.push('/family/members'),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.refresh(familyMembersProvider),

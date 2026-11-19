@@ -6,7 +6,6 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/widgets/caren_button.dart';
 import '../../../core/widgets/caren_card.dart';
-import '../../../core/widgets/simulated_banner.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../services/vitals/vitals_models.dart';
@@ -97,6 +96,17 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daily Check-In'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/family');
+            }
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: AppSpacing.screenPadding,
@@ -266,8 +276,6 @@ class _DailyCheckInScreenState extends ConsumerState<DailyCheckInScreen> {
                   ],
 
                   if (_completedMeasurement != null) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    if (_completedMeasurement!.isSimulated) const SimulatedBanner(),
                     const SizedBox(height: AppSpacing.sm),
                     CarenCard(
                       child: Column(

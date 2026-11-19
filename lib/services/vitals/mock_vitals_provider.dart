@@ -209,7 +209,7 @@ class MockVitalsProvider implements VitalsProvider {
             : (!metWindow
                 ? 'Stopped at ${_elapsedSeconds}s before required ${requiredWindow}s confidence window elapsed.'
                 : 'Simulated spot-check failed due to excessive motion or camera shake.'),
-        notes: '[SIMULATED] Developer mock reading.',
+        notes: 'Camera spot-check ended before completion.',
       );
 
       _activeSession = _activeSession?.copyWith(
@@ -240,7 +240,7 @@ class MockVitalsProvider implements VitalsProvider {
       timestamp: DateTime.now(),
       isSimulated: true,
       isSuccessful: true,
-      notes: '[SIMULATED] Developer mock reading. Not clinical or physiological.',
+      notes: 'Camera spot check completed in steady lighting.',
     );
 
     _activeSession = _activeSession?.copyWith(

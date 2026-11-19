@@ -66,6 +66,17 @@ class ProfileSettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile & Settings'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/family');
+            }
+          },
+        ),
       ),
       body: profileAsync.when(
         data: (profile) {
@@ -177,61 +188,61 @@ class ProfileSettingsScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                if (kDebugMode) ...[
+                  const SizedBox(height: AppSpacing.lg),
 
-                // Developer & SDK Status
-                Text('Presage SmartSpectra SDK Status', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.xs),
-                CarenCard(
-                  backgroundColor: AppColors.surfaceVariant,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      privacyAsync.when(
-                        data: (privacy) => Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Provider Mode', style: AppTypography.labelLarge),
-                            StatusBadge(
-                              label: privacy.enableSmartSpectraSimulatedMock ? 'SIMULATED MOCK' : 'NATIVE SMARTSPECTRA',
-                              type: privacy.enableSmartSpectraSimulatedMock ? BadgeType.warning : BadgeType.success,
-                            ),
-                          ],
+                  // Developer & SDK Status
+                  Text('Presage SmartSpectra SDK Status', style: AppTypography.titleMedium),
+                  const SizedBox(height: AppSpacing.xs),
+                  CarenCard(
+                    backgroundColor: AppColors.surfaceVariant,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        privacyAsync.when(
+                          data: (privacy) => Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Provider Mode', style: AppTypography.labelLarge),
+                              StatusBadge(
+                                label: privacy.enableSmartSpectraSimulatedMock ? 'SIMULATED MOCK' : 'NATIVE SMARTSPECTRA',
+                                type: privacy.enableSmartSpectraSimulatedMock ? BadgeType.warning : BadgeType.success,
+                              ),
+                            ],
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      privacyAsync.when(
-                        data: (privacy) => Text(
-                          privacy.enableSmartSpectraSimulatedMock
-                              ? 'Running MockVitalsProvider with clearly marked simulated data for UI and automated testing.'
-                              : 'Running NativeVitalsProvider with real Presage SmartSpectra SDK 3.4.0 and CameraX PlatformView.',
-                          style: AppTypography.caption,
+                        const SizedBox(height: AppSpacing.xs),
+                        privacyAsync.when(
+                          data: (privacy) => Text(
+                            privacy.enableSmartSpectraSimulatedMock
+                                ? 'Running MockVitalsProvider with clearly marked simulated data for UI and automated testing.'
+                                : 'Running NativeVitalsProvider with real Presage SmartSpectra SDK 3.4.0 and CameraX PlatformView.',
+                            style: AppTypography.caption,
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      privacyAsync.when(
-                        data: (privacy) => SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Simulated Mock Mode', style: AppTypography.labelMedium),
-                          subtitle: const Text('Toggle OFF to activate native Android CameraX and SmartSpectra SDK.',
-                              style: AppTypography.caption),
-                          value: privacy.enableSmartSpectraSimulatedMock,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) async {
-                            await ref.read(privacySettingsProvider.notifier).updateSettings(
-                                  privacy.copyWith(enableSmartSpectraSimulatedMock: val),
-                                );
-                            ref.invalidate(vitalsProvider);
-                          },
+                        const SizedBox(height: AppSpacing.sm),
+                        privacyAsync.when(
+                          data: (privacy) => SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Simulated Mock Mode', style: AppTypography.labelMedium),
+                            subtitle: const Text('Toggle OFF to activate native Android CameraX and SmartSpectra SDK.',
+                                style: AppTypography.caption),
+                            value: privacy.enableSmartSpectraSimulatedMock,
+                            activeThumbColor: AppColors.primary,
+                            onChanged: (val) async {
+                              await ref.read(privacySettingsProvider.notifier).updateSettings(
+                                    privacy.copyWith(enableSmartSpectraSimulatedMock: val),
+                                  );
+                              ref.invalidate(vitalsProvider);
+                            },
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
-                      ),
-                      if (kDebugMode) ...[
                         const SizedBox(height: AppSpacing.md),
                         CarenButton(
                           label: 'Developer Diagnostics & SDK Console',
@@ -240,9 +251,9 @@ class ProfileSettingsScreen extends ConsumerWidget {
                           onPressed: () => context.push('/diagnostics'),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: AppSpacing.xl),
 
                 // Sign Out
