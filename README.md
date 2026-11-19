@@ -1,230 +1,369 @@
 <div align="center">
 
-<p align="center">
-  <img src="assets/branding/icon.png" alt="Caren emblem" width="96" height="96" />
-  <img src="assets/branding/wordmark_icon.png" alt="Caren wordmark" height="96" />
-</p>
+  <img src="assets/branding/icon.png" alt="caren emblem" width="96" height="96" style="border-radius: 20px;" />
 
-<hr>
-
-<b><i>Care, closer.</b></i>
+  # caren
+  ### Care, closer.
 
   **An open-source family wellbeing companion and personal sanctuary.**  
-  *Voluntary check-ins, mindful routines, contactless optical vitals, and one-tap emergency assist.*
+  Voluntary daily check-ins, mindful routines, contactless optical vitals, and immediate emergency assist.
 
   <br/>
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-174F47.svg?style=flat-square)](LICENSE)
   [![Flutter](https://img.shields.io/badge/Flutter-3.47.5-02569B.svg?style=flat-square&logo=flutter)](https://flutter.dev)
   [![Dart](https://img.shields.io/badge/Dart-3.13.4-0175C2.svg?style=flat-square&logo=dart)](https://dart.dev)
-  [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-32675F.svg?style=flat-square)](https://github.com/slightlybroke/caren)
+  [![Presage SmartSpectra](https://img.shields.io/badge/Presage-SmartSpectra%203.4.0-32675F.svg?style=flat-square)](https://presagetech.com)
+  [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-486456.svg?style=flat-square)](https://github.com/slightlybroke/caren)
   [![Tests](https://img.shields.io/badge/Tests-116%20Passing-2E7D32.svg?style=flat-square)](test/)
-  [![Code Style](https://img.shields.io/badge/Code%20Style-Flutter%20Lints-388E3C.svg?style=flat-square)](analysis_options.yaml)
 
   <br/>
 
-  [**🌐 Try Live Web Demo**](https://try-caren.vercel.app) &nbsp;•&nbsp; 
-  [**📱 Download Android APK (v1.0.0)**](https://github.com/slightlybroke/caren/releases/tag/android-demo-v1) &nbsp;•&nbsp; 
-  [**📖 Architecture**](ARCHITECTURE.md) &nbsp;•&nbsp; 
-  [**🤝 Contributing**](CONTRIBUTING.md) &nbsp;•&nbsp; 
-  [**🔒 Security & Privacy**](SECURITY.md)
+  [Try Live Web Demo](https://try-caren.vercel.app) &nbsp;|&nbsp; 
+  [Download Android APK (v1.0.0)](https://github.com/slightlybroke/caren/releases/tag/android-demo-v1) &nbsp;|&nbsp; 
+  [Architecture Deep Dive](ARCHITECTURE.md) &nbsp;|&nbsp; 
+  [Contributing](CONTRIBUTING.md) &nbsp;|&nbsp; 
+  [Security & Privacy](SECURITY.md)
 
 </div>
 
 ---
 
-## 🌿 Overview
+## The Problem: The Distance Caregiver Dilemma
 
-Millions of families live across different cities, provinces, and time zones. When supporting aging parents, partners, or loved ones living independently, everyday communication often turns into a delicate tension: asking *"Did you take your pills? How are your vitals today?"* can feel like intrusive surveillance, while staying silent brings quiet anxiety.
+Millions of families live across different cities, provinces, and time zones. When supporting aging parents, partners, or loved ones living independently, everyday communication often falls into an uncomfortable dilemma:
 
-**caren** is designed to dissolve that tension. Built on the **Serene Hearth** design system, caren brings gentle daily care, private grounding routines, contactless wellness spot-checks, and emergency dispatch into one calm, non-stigmatizing experience.
+1. **The Surveillance Trap:** Asking *"Did you take your pills? What are your vitals today?"* often feels like condescending micro-management or infantilizing surveillance.
+2. **The Anxiety Gap:** Staying silent to avoid nag-fatigue leaves family members carrying constant, unaddressed anxiety about whether their loved one is safe.
+3. **The Friction of Wearables:** Many elders and independent individuals dislike wearing smartwatches 24/7, forget to charge proprietary health bands, or find clinical monitors intimidating.
+4. **The Emergency Confusion:** In a crisis, panicking individuals or caregivers struggle to look up the correct localized emergency dispatch numbers, recall symptoms, or communicate an accurate timeline to paramedics under stress.
 
-### Core Principles
-- **Sovereign Consent:** All check-ins and shared metrics are 100% voluntary and self-directed. Sharing permissions are granular and revocable at any moment. Zero passive or background tracking.
-- **Private by Default:** The personal sanctuary (`Me`) is completely quarantined on-device—guided breathing and reflections are never shared with family circles.
-- **Contactless Sensing:** Integrated with the **Presage SmartSpectra SDK (3.4.0)**, allowing users to estimate pulse and breathing pace using their smartphone's front-facing camera with real-time positioning feedback—no wearables required.
-- **Immediate Help:** One-tap emergency calling with localized dispatch resolution (112 / 911 / 999) and a structured medical handover card for first responders.
+caren resolves these tensions through **sovereign consent**, **voluntary sharing**, **contactless camera-based optical vitals**, and **one-tap emergency assistance**.
 
 ---
 
-## ✨ Features
+## Core Product Pillars
 
+```mermaid
+flowchart LR
+    subgraph caren["caren Platform Architecture"]
+        direction TB
+        FC["Family Circle<br/>(Voluntary Check-ins)"]
+        MS["Me Sanctuary<br/>(Private Self-Care)"]
+        CV["Contactless Vitals<br/>(Presage SmartSpectra)"]
+        EA["Emergency Assist<br/>(Localized Dispatch)"]
+    end
+
+    FC ---|"Granular Opt-In"| S["Shared Circle Feed"]
+    MS ---|"Strictly Quarantined"| L["Local Device Storage"]
+    CV ---|"CameraX rPPG"| FC
+    CV ---|"Private Trends"| MS
+    EA ---|"112 / 911 / 999"| R["First Responders"]
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                              caren                                     │
-├─────────────────────┬─────────────────────┬────────────────────────────┤
-│   👨‍👩‍👧 Family Circle   │   🧘 Me Sanctuary   │    🚨 Emergency Assist     │
-├─────────────────────┼─────────────────────┼────────────────────────────┤
-│ • Voluntary check-in│ • Guided breathing  │ • One-tap emergency call   │
-│ • Energy & sleep    │ • 5 Senses Grounding│ • Localized dispatch (112) │
-│ • Routine tracking  │ • Wall-clock timers │ • Symptom handover log     │
-│ • Gentle reminders  │ • Personal history  │ • Clipboard summary card   │
-│ • Granular privacy  │ • 100% quarantined │ • Confirmation safety gate │
-└─────────────────────┴─────────────────────┴────────────────────────────┘
-```
 
-### 1. Family Circle (Voluntary Reassurance)
-Stay connected across distances with voluntary, reassuring check-ins. Family members choose what and when to share.
-- Daily check-in captures self-reported energy, sleep reflection, routine medication adherence, and optional notes.
-- Status badges give family members peace of mind at a glance (`Checked In`, `Pending`).
-- Gentle, respectful reminders with zero surveillance pressure.
+### 1. Family Circle: Voluntary Reassurance, Zero Surveillance
+Family members check in voluntarily on their own schedule. A check-in captures self-reported energy, sleep quality, daily routine completion, and personal notes.
+- **Granular Sovereignty:** Every check-in carries an explicit toggle (`Share with Family Circle`). Users can share their status while keeping personal reflections completely private.
+- **Gentle Reassurance:** Family dashboards display reassuring status badges (`Checked In`, `Pending Today`) without telemetry, location tracking, or intrusive notifications.
 
-### 2. Me Sanctuary (Personal Mindfulness)
-A private, calming sanctuary designed for personal self-care and grounding.
-- **Guided Paced Breathing:** Visually guided inhale/exhale cycles (4s inhale / 6s exhale) with optional voice coaching and mute controls. Supports quick durations (2m, 5m, 15m) or custom durations.
-- **5 Senses Sensory Grounding:** Guided grounding steps to reduce situational stress and regain calm.
-- **Personal Trend History:** Private resting pulse and breathing trends stored locally.
+### 2. Me Sanctuary: Quarantined Personal Mindfulness
+A completely isolated, confidential space for guided breathing and grounding exercises.
+- **Guided Paced Breathing:** Rhythmic expanding and contracting pacing animations (4s inhale / 6s exhale) with optional spoken audio guidance and mute toggles.
+- **Sensory Grounding (5 Senses):** Cognitive grounding routines designed to reduce acute stress through step-by-step sensory anchoring.
+- **Strict Quarantine:** Data created in the Me Sanctuary is never uploaded to the family feed or accessible to circle members.
 
 ### 3. Contactless Vitals via Presage SmartSpectra
-Powered by the **Presage SmartSpectra 3.4.0 SDK** on Android:
-- Estimates pulse rate and respiration pace using remote photoplethysmography (rPPG).
-- **Intelligent Preflight:** Camera auto-exposure and face positioning must achieve stable alignment for 2 continuous seconds before measurement begins.
-- **Real-Time Visual PPG Waveform:** Visual feedback confirms blood volume pulse signal acquisition in real time.
-- **Web Demo Experience:** On modern browsers, caren streams the user's front camera directly inside the phone frame, giving visitors an authentic, interactive preview of the positioning and spot-check workflow.
+Integrated with the **Presage SmartSpectra SDK (3.4.0)** on Android, turning the front-facing camera into an optical pulse and respiration sensor using remote photoplethysmography (rPPG).
+- No wearables or external accessories required.
+- **Intelligent Preflight Gate:** Automatic illumination checks and face centering guides enforce a 2-second stability window before measurement begins, preventing inaccurate readings.
+- **Live Photoplethysmogram (PPG) Waveform:** Real-time visual pulse waveforms reassure the user that optical signal capture is actively functioning.
 
-### 4. Emergency Assist & Handover
-Practical safety support when immediate help is needed:
-- **Instant Emergency Dialer:** Resolves national dispatch numbers automatically (e.g., `112` for Europe/India, `911` for US/Canada, `999` for UK) based on profile country.
-- **Explicit Safety Confirmation:** Two-step confirmation ensures the dialer is never triggered unintentionally.
-- **Medical Handover Card:** Records user-observed symptoms and timing into a structured summary that first responders can read or copy to clipboard immediately.
+### 4. Emergency Assist: Instant Localized Dispatch & Medical Handover
+- **Localized Dispatch Resolution:** Automatically resolves national emergency numbers (e.g., `112` for Europe/India, `911` for US/Canada, `999` for UK) based on the user's configured country without external network round-trips.
+- **Explicit Safety Confirmation:** Two-step confirmation prevents accidental dialer launches.
+- **Structured Handover Timeline:** Consolidates timestamps, symptoms, and user notes into a concise clinical summary that paramedics or hospital staff can read or copy in one tap.
 
 ---
 
-## 🚀 Quick Start
+## User Journey & Consent Flow
 
-### Prerequisites
+The following sequence illustrates how caren balances family transparency with individual privacy during a daily check-in:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Loved One (e.g. Eleanor Doe)
+    participant App as caren App
+    participant SDK as Presage SmartSpectra (CameraX)
+    participant Local as Local Storage
+    participant Circle as Family Circle (e.g. John Doe)
+
+    User->>App: Opens Daily Check-In
+    App->>User: Displays self-report form (Feeling, Sleep, Routine)
+    User->>App: Fills status & optional note
+    
+    opt Contactless Optical Spot-Check
+        User->>App: Taps Start Camera Spot-Check
+        App->>SDK: Initialize CameraX & SmartSpectra pipeline
+        SDK-->>App: Stream validation frames (Lighting, Face Centering)
+        App->>User: Renders positioning oval & real-time guidance
+        Note over App,SDK: 2-Second Stability Gate Passed
+        SDK-->>App: Streams PPG waveform & calculates pulse/breathing
+        App->>User: Displays validated metrics (e.g. 72 bpm, 15 brpm)
+    end
+
+    User->>App: Chooses Share with Family Circle (Yes/No)
+    App->>Local: Encrypts & saves record to local session store
+    
+    alt User chose to share
+        App->>Circle: Updates status badge: Checked In Today
+        Circle-->>User: Peace of mind, zero surveillance friction
+    else User chose private check-in
+        App->>Circle: Shows check-in completed privately
+    end
+```
+
+---
+
+## Optical Sensing Architecture (Presage SmartSpectra 3.4.0)
+
+caren bridges the official Presage SmartSpectra Android SDK via high-performance platform channels, decoupling the native frame processing pipeline from Flutter UI rendering:
+
+```mermaid
+flowchart TD
+    subgraph Hardware["Android Hardware"]
+        CAM["Front-Facing Camera"]
+    end
+
+    subgraph NativeAndroid["Android Native Layer (Kotlin)"]
+        CX["CameraX PreviewView & ImageAnalysis"]
+        SS["Presage SmartSpectra SDK 3.4.0"]
+        STATE["SessionState Machine & Mutex"]
+        BRIDGE["SmartSpectraBridge (MethodChannel & EventChannel)"]
+    end
+
+    subgraph FlutterLayer["Flutter / Dart Layer"]
+        VP["NativeVitalsProvider"]
+        STREAM["StreamController&lt;VitalsStreamData&gt;"]
+        GATE["Semantic Preflight Stability Gate"]
+        UI["VitalsMeasurementWidget & Live PPG Waveform"]
+    end
+
+    CAM -->|"High-rate YUV frames"| CX
+    CX -->|"Frame buffer"| SS
+    SS -->|"Proto metrics & validation codes"| STATE
+    STATE -->|"Thread-safe dispatch"| BRIDGE
+    BRIDGE -->|"Platform events"| VP
+    VP --> STREAM
+    STREAM --> GATE
+    GATE -->|"Validated live stream"| UI
+```
+
+### Native SmartSpectra Kotlin Bridge Snippet
+The native bridge manages single-owner measurement sessions with mutex concurrency control and zero background telemetry:
+
+```kotlin
+// android/app/src/main/kotlin/com/caren/app/caren/smartspectra/SmartSpectraBridge.kt
+class SmartSpectraBridge(
+    private val activity: Activity,
+    messenger: BinaryMessenger
+) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
+
+    private val methodChannel = MethodChannel(messenger, "com.caren.app/smartspectra")
+    private val eventChannel = EventChannel(messenger, "com.caren.app/smartspectra_stream")
+    private val sessionMutex = Mutex()
+    private var sessionState = SessionState.UNINITIALIZED
+
+    suspend fun startMeasurement(sessionId: String, targetDuration: Int): Boolean {
+        sessionMutex.withLock {
+            if (sessionState == SessionState.ACTIVE) return false
+            sessionState = SessionState.STARTING
+
+            val config = SmartSpectraConfig(
+                apiKey = getApiKey(),
+                camera = CameraSelection.FRONT,
+                sendTelemetry = false // Sovereign privacy: zero telemetry
+            )
+
+            SmartSpectraSdk.start(
+                config = config,
+                onMetrics = { metrics: Metrics ->
+                    val payload = mapOf(
+                        "pulse" to metrics.pulseBpm,
+                        "breathing" to metrics.respirationBpm,
+                        "waveform" to metrics.waveformValue,
+                        "confidence" to metrics.confidenceScore,
+                        "validationCode" to metrics.validationCode.name
+                    )
+                    eventSink?.success(payload)
+                },
+                onError = { error -> handleFailure(error) }
+            )
+            sessionState = SessionState.ACTIVE
+            return true
+        }
+    }
+}
+```
+
+### Dart EventChannel Subscription & Real-Time Waveform
+The Flutter layer subscribes to the stream and feeds the live PPG waveform into the UI:
+
+```dart
+// lib/services/vitals/native_vitals_provider.dart
+class NativeVitalsProvider implements VitalsProvider {
+  static const MethodChannel _methodChannel = MethodChannel('com.caren.app/smartspectra');
+  static const EventChannel _eventChannel = EventChannel('com.caren.app/smartspectra_stream');
+
+  Stream<VitalsStreamData> startMeasurement({MeasurementConfig config = const MeasurementConfig()}) {
+    _streamController = StreamController<VitalsStreamData>.broadcast();
+
+    _methodChannel.invokeMethod('startMeasurement', {
+      'targetSeconds': config.target.defaultDurationSeconds,
+    });
+
+    _eventSubscription = _eventChannel.receiveBroadcastStream().listen((dynamic raw) {
+      final map = Map<String, dynamic>.from(raw as Map);
+      final data = VitalsStreamData(
+        status: MeasurementStatus.measuring,
+        instantaneousPulse: (map['pulse'] as num?)?.toDouble(),
+        instantaneousBreathing: (map['breathing'] as num?)?.toDouble(),
+        waveformValue: (map['waveform'] as num?)?.toDouble(),
+        confidenceScore: (map['confidence'] as num?)?.toDouble(),
+        validationCode: map['validationCode'] as String? ?? 'OK',
+      );
+      _streamController?.add(data);
+    });
+
+    return _streamController!.stream;
+  }
+}
+```
+
+---
+
+## Emergency Assist: Localized Dispatch Architecture
+
+In a health crisis, expecting an individual or caregiver to search online for local emergency numbers is dangerous. caren resolves dispatch numbers synchronously from a localized directory without requiring internet access or active SIM geolocation:
+
+```mermaid
+flowchart LR
+    UP["User Profile (e.g. Country: India)"] --> ED["Emergency Directory"]
+    ED -->|"Offline Resolution"| NUM["Dispatch Number: 112"]
+    NUM --> DIALOG{"Explicit Safety Gate"}
+    DIALOG -->|"Cancel"| DISMISS["Safe Dismissal"]
+    DIALOG -->|"Confirm"| LAUNCH["Launch Native Dialer (tel:112)"]
+    LAUNCH --> HANDOVER["Generate Structured Handover Card"]
+```
+
+### Emergency Handover Timeline Synthesis
+caren automatically consolidates user observations, symptoms, and elapsed time into an exportable medical summary:
+
+```dart
+// lib/features/emergency/presentation/emergency_session_screen.dart
+String _generateHandoffSummaryText() {
+  final buffer = StringBuffer();
+  buffer.writeln('CAREN MEDICAL HANDOVER SUMMARY');
+  buffer.writeln('Session Started: ${AppFormatters.formatDateTime(_session!.startTime)}');
+  buffer.writeln('Country Dispatch: ${userProfile.country} (${userProfile.emergencyNumber})');
+  buffer.writeln('----------------------------------------');
+  buffer.writeln('OBSERVATIONS & TIMELINE:');
+  for (final obs in _session!.observations) {
+    buffer.writeln('• [${AppFormatters.formatTime(obs.timestamp)}] ${obs.description}');
+  }
+  if (_consentMeasurement != null) {
+    buffer.writeln('----------------------------------------');
+    buffer.writeln('LAST OPTICAL SPOT-CHECK:');
+    buffer.writeln('Pulse: ${_consentMeasurement!.pulseRateBpm?.toInt() ?? "--"} bpm');
+    buffer.writeln('Breathing: ${_consentMeasurement!.breathingRateBpm?.toInt() ?? "--"} brpm');
+    buffer.writeln('Quality: ${(_consentMeasurement!.qualityScore * 100).toInt()}%');
+  }
+  return buffer.toString();
+}
+```
+
+---
+
+## Quickstart & Developer Onboarding
+
+### 1. Prerequisites
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (`>= 3.13.0`, tested on Flutter 3.47.5 stable)
 - [Dart SDK](https://dart.dev/get-dart) (`>= 3.13.0`)
 - Android Studio / VS Code with Flutter extension
-- An Android device running Android 9+ (API 28+) for live native camera vitals, or any modern web browser for the web demo
+- An Android device running Android 9+ (API 28+) for native optical camera vitals, or any modern web browser for the web demo
 
-### 1. Clone & Install
+### 2. Clone & Run (Web Explorer)
 ```sh
 git clone https://github.com/slightlybroke/caren.git
 cd caren
 flutter pub get
-```
-
-### 2. Run on Web (Instant Exploration)
-Run the responsive desktop presentation shell with the interactive phone frame:
-```sh
 flutter run -d chrome
 ```
-*Click **"Explore the Live Demo"** on the landing page to instantly sign in as **John Doe** and explore the seeded Family Circle without creating an account.*
+*Click **"Explore the Live Demo"** on the landing page to instantly sign in as **John Doe** and explore the pre-seeded Family Circle.*
 
-### 3. Run on Android
-Connect your Android phone with USB debugging enabled:
+### 3. Run on Physical Android Hardware
 ```sh
 flutter devices
 flutter run -d <device-id>
 ```
 
-#### Optional: Configuring Presage SmartSpectra for Live Android Readings
-The demo APK and local builds include seamless fallback data. To enable live optical vital measurement via the official Presage SDK on physical hardware:
-1. Register for an API key at the [Presage Developer Portal](https://physiology.presagetech.com).
-2. Create or edit `android/local.properties`:
+### 4. Enable Live Presage SmartSpectra Readings
+The public demo uses simulated vitals when an API key is not present. To activate live camera readings on physical hardware:
+1. Obtain an authorized key from the [Presage Developer Portal](https://physiology.presagetech.com).
+2. Add your key to `android/local.properties`:
    ```properties
    SMARTSPECTRA_API_KEY=your_presage_api_key_here
    ```
-3. Re-run `flutter run -d <device-id>`. The app will automatically initialize the native CameraX pipeline and SmartSpectra SDK.
+3. Re-launch `flutter run -d <device-id>`. The app will stream live CameraX frames to the native SDK pipeline.
 
-#### Optional: Connecting Your Own Firebase Project
-caren runs completely standalone using local in-memory repositories by default. To connect your own live Firebase backend:
-1. Create a Firebase project with Email/Password authentication and Cloud Firestore.
-2. Register the Android package name `com.caren.app.caren`.
-3. Download `google-services.json` and place it in `android/app/google-services.json`.
-4. Deploy the checked-in security rules:
+### 5. Optional: Connect Custom Firebase Project
+caren operates completely standalone using local in-memory repositories by default. To connect your own live Firebase backend:
+1. Create a Firebase project with Email/Password Auth and Cloud Firestore.
+2. Register the Android package `com.caren.app.caren`.
+3. Place `google-services.json` in `android/app/`.
+4. Deploy the checked-in Firestore rules:
    ```sh
    firebase deploy --only firestore:rules,firestore:indexes
    ```
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## Testing & Quality Verification
 
-caren follows **Clean Architecture** with a feature-first folder organization:
-
-```
-lib/
-├── app/                  # Application bootstrap, router (GoRouter), and themes
-│   ├── app.dart
-│   └── router/app_router.dart
-├── core/                 # Shared design system, constants, and reusable widgets
-│   ├── constants/        # AppColors, AppTypography, AppSpacing, AppBranding
-│   ├── config/           # DemoConfig (seeded identities)
-│   ├── theme/            # Serene Hearth ThemeData
-│   └── widgets/          # WebResponsiveShell, CarenButton, CarenCard, WebCameraPreview
-├── features/             # Domain & Presentation feature slices
-│   ├── authentication/   # Auth controller, login, registration
-│   ├── dashboard/        # MainScaffoldScreen (StatefulShellRoute with 3 tabs)
-│   ├── family/           # FamilyDashboard, DailyCheckIn, MemberDetail, AddMemberWizard
-│   ├── wellness/         # MeDashboard, GuidedBreathing, GuidedActivity, CameraPositioning
-│   ├── emergency/        # EmergencyLanding, EmergencySession (handover)
-│   └── profile/          # ProfileSettings, PrivacyPermissions
-└── services/             # Platform integrations and infrastructure
-    ├── emergency/        # EmergencyDialerService
-    ├── firebase/         # FirebaseService bootstrap
-    ├── speech/           # SpokenGuidanceService (TTS voice cues)
-    └── vitals/           # VitalsProvider, NativeVitalsProvider, MockVitalsProvider
-```
-
-For an in-depth breakdown of state management, data pipelines, and platform channels, see [**ARCHITECTURE.md**](ARCHITECTURE.md).
-
----
-
-## 🧪 Testing & Code Quality
-
-caren maintains high quality standards with unit, widget, and authorization tests:
+caren includes a comprehensive test suite across unit, widget, and authorization layers:
 
 ```sh
-# 1. Run static analysis (0 warnings)
+# 1. Run static analysis (0 warnings, 0 errors)
 flutter analyze
 
-# 2. Run unit & widget test suite (116 tests)
+# 2. Run unit and widget test suite (116 tests passing)
 flutter test
 
-# 3. Test Firestore Security Rules in local emulator
+# 3. Test Cloud Firestore Security Rules in local emulator
 npm ci --prefix firestore-rules-tests
 firebase emulators:exec --only firestore "npm --prefix firestore-rules-tests test"
 ```
 
 ---
 
-## 🎨 Serene Hearth Design System
+## Security & Privacy Policy
 
-caren uses the **Serene Hearth** design system—an organic, warm minimalist design language:
+- **No Passive Tracking:** caren never operates camera, microphone, or location sensors in the background.
+- **On-Device Frame Processing:** When performing a wellness check, CameraX frames are processed in-memory by SmartSpectra; video streams are never written to disk or uploaded to remote cloud storage.
+- **Strict Consent Boundary:** Personal mindfulness routines in the Me Sanctuary are quarantined on-device and never shared across family feeds.
+- **Non-Clinical Notice:** caren’s optical estimates are for personal wellness tracking and family reassurance. They do not constitute diagnostic medical evaluations.
 
-| Token | Hex | Role | Contrast Ratio |
-| :--- | :--- | :--- | :--- |
-| **Deep Forest** | `#174F47` | Primary brand & active indicators | **8.5:1** on background (WCAG AAA) |
-| **Warm Ivory** | `#FAF9F4` | App canvas & background surface | Baseline surface |
-| **Soft Sage** | `#E8F2ED` | Secondary containers & subtle chips | Soft, tranquil accents |
-| **Warm Peach** | `#F3D7C3` | Celebration & highlight accents | Human, comforting warmth |
-| **Emergency Crimson** | `#C94A4A` | Immediate assist & danger states | High-urgency alert |
-| **Charcoal Ink** | `#1B1C19` | Primary typography | **15.2:1** on background |
+For full disclosure details, review [SECURITY.md](SECURITY.md).
 
 ---
 
-## 🔒 Security & Privacy Charter
+## Contributing & Community
 
-- **No Passive Tracking:** caren never runs camera, microphone, or location sensors in the background.
-- **On-Device Optical Analysis:** When taking a wellness check, frames are analyzed in memory on-device by SmartSpectra to extract blood volume pulse signals; raw video recordings are never saved to disk or transmitted to remote servers.
-- **Consent Isolation:** Data recorded in the `Me` sanctuary stays quarantined in private local storage and cannot be read by other family members.
-- **Non-Clinical Notice:** caren’s wellness spot-checks are designed for personal awareness and family reassurance. They do not constitute diagnostic medical advice.
-
-For full disclosure and policy details, see [**SECURITY.md**](SECURITY.md).
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and review our [Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request.
 
 ---
 
-## 🤝 Contributing
+## License
 
-We welcome contributions from the open-source community! Whether fixing a bug, improving documentation, or refining animations, please read our [**CONTRIBUTING.md**](CONTRIBUTING.md) guide before opening a pull request.
-
-Please review our [**Code of Conduct**](CODE_OF_CONDUCT.md) to keep our community welcoming and supportive.
-
----
-
-## 📄 License
-
-caren is open-source software licensed under the [**MIT License**](LICENSE).  
-The Presage SmartSpectra SDK is copyrighted by [Presage Technologies](https://presagetech.com) and subject to its developer license terms.
+caren is open-source software licensed under the [MIT License](LICENSE).  
+The Presage SmartSpectra SDK is provided by [Presage Technologies](https://presagetech.com) under separate developer terms.
