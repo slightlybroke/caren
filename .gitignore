@@ -83,3 +83,12 @@ GEMINI.md
 *.brief.md
 
 
+
+# Local AI tooling and release production files
+.agents/
+.claude/
+.codex/
+.cursor/
+.gemini/
+.github/copilot-instructions.md
+.release-local/

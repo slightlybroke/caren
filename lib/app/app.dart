@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/widgets/web_responsive_shell.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -15,7 +16,9 @@ class CarenApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
+      builder: (context, child) => WebResponsiveShell(
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }
-

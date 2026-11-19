@@ -1,6 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'session_file_storage.dart';
 import 'vitals_models.dart';
 
 abstract class MeasurementSessionRepository {
@@ -11,33 +13,26 @@ abstract class MeasurementSessionRepository {
   Future<void> clearAllSessions();
 }
 
-class LocalMeasurementSessionRepository implements MeasurementSessionRepository {
+class LocalMeasurementSessionRepository
+    implements MeasurementSessionRepository {
   final Map<String, MeasurementSessionRecord> _memoryCache = {};
-  File? storageFile;
-  bool _initialized = false;
+  final _storage = SessionFileStorage();
+  Future<void>? _initialization;
 
-  LocalMeasurementSessionRepository({this.storageFile});
+  LocalMeasurementSessionRepository();
 
-  Future<void> _ensureInitialized() async {
-    if (_initialized) return;
-    _initialized = true;
+  Future<void> _ensureInitialized() => _initialization ??= _loadSessions();
 
+  Future<void> _loadSessions() async {
     try {
-      if (storageFile == null) {
-        final dir = Directory.systemTemp.createTempSync('caren_sessions_');
-        storageFile = File('${dir.path}/measurement_sessions.json');
-      }
-
-      if (await storageFile!.exists()) {
-        final content = await storageFile!.readAsString();
-        if (content.trim().isNotEmpty) {
-          final dynamic parsed = jsonDecode(content);
-          if (parsed is List) {
-            for (final item in parsed) {
-              if (item is Map<String, dynamic>) {
-                final session = MeasurementSessionRecord.fromJson(item);
-                _memoryCache[session.id] = session;
-              }
+      final content = await _storage.read();
+      if (content != null && content.trim().isNotEmpty) {
+        final dynamic parsed = jsonDecode(content);
+        if (parsed is List) {
+          for (final item in parsed) {
+            if (item is Map<String, dynamic>) {
+              final session = MeasurementSessionRecord.fromJson(item);
+              _memoryCache[session.id] = session;
             }
           }
         }
@@ -49,10 +44,8 @@ class LocalMeasurementSessionRepository implements MeasurementSessionRepository 
 
   Future<void> _persistToDisk() async {
     try {
-      if (storageFile != null) {
-        final list = _memoryCache.values.map((s) => s.toJson()).toList();
-        await storageFile!.writeAsString(jsonEncode(list), flush: true);
-      }
+      final list = _memoryCache.values.map((s) => s.toJson()).toList();
+      await _storage.write(jsonEncode(list));
     } catch (_) {
       // Silent in-memory fallback
     }
