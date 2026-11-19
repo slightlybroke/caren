@@ -418,15 +418,88 @@ class _CameraPositioningScreenState
                     )
                   else
                     Container(
-                      color: Colors.black87,
-                      child: Center(
-                        child: Icon(
-                          Icons.face_retouching_natural_rounded,
-                          size: 96,
-                          color: _isSdkReady
-                              ? AppColors.primaryLight
-                              : Colors.white24,
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment.center,
+                          radius: 0.85,
+                          colors: [
+                            _isSdkReady
+                                ? AppColors.primaryLight.withValues(alpha: 0.35)
+                                : const Color(0xFF1E2822),
+                            const Color(0xFF0F1512),
+                            Colors.black,
+                          ],
                         ),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Viewfinder grid lines
+                          Opacity(
+                            opacity: 0.12,
+                            child: GridPaper(
+                              color: AppColors.primaryLight,
+                              divisions: 2,
+                              subdivisions: 1,
+                            ),
+                          ),
+                          // Center face & sensor icon
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isFaceDetected
+                                    ? Icons.face_rounded
+                                    : Icons.face_retouching_natural_rounded,
+                                size: 84,
+                                color: _isSdkReady
+                                    ? AppColors.primaryContainer
+                                    : Colors.white38,
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white24,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: _isSdkReady
+                                            ? const Color(0xFF4CAF50)
+                                            : Colors.amber,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      kIsWeb
+                                          ? 'Web Camera Simulation Active'
+                                          : 'Optical Sensor Active',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
 

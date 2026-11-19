@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/profile/data/profile_repository.dart';
 import 'mock_vitals_provider.dart';
@@ -70,7 +71,7 @@ final vitalsProvider = Provider<VitalsProvider>((ref) {
   final privacyAsync = ref.watch(privacySettingsProvider);
   final useMock = privacyAsync.asData?.value.enableSmartSpectraSimulatedMock ?? false;
 
-  if (useMock) {
+  if (kIsWeb || useMock) {
     return ref.watch(mockVitalsProvider);
   } else {
     return ref.watch(nativeVitalsProvider);

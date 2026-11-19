@@ -8,17 +8,17 @@
 class DemoConfig {
   static const String demoEmail = String.fromEnvironment(
     'DEMO_EMAIL',
-    defaultValue: 'demo@example.com',
+    defaultValue: 'john.doe@caren.app',
   );
 
   static const String demoPassword = String.fromEnvironment(
     'DEMO_PASSWORD',
-    defaultValue: 'local-demo-only',
+    defaultValue: 'DemoCaren2026!',
   );
 
   static const String demoDisplayName = String.fromEnvironment(
     'DEMO_NAME',
-    defaultValue: 'Caren Demo',
+    defaultValue: 'John Doe',
   );
 
   /// Always true since we provide a safe fallback demo account

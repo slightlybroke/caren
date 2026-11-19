@@ -88,10 +88,21 @@ class VitalsMeasurementWidget extends StatelessWidget {
                         gradient: RadialGradient(
                           colors: [
                             isFaceDetected
-                                ? AppColors.primaryLight.withAlpha(60)
-                                : Colors.white.withAlpha(20),
-                            Colors.transparent,
+                                ? AppColors.primaryLight.withValues(alpha: 0.35)
+                                : const Color(0xFF1E2822),
+                            Colors.black,
                           ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          isFaceDetected
+                              ? Icons.face_rounded
+                              : Icons.face_retouching_natural_rounded,
+                          size: 56,
+                          color: isFaceDetected
+                              ? AppColors.primaryContainer
+                              : Colors.white24,
                         ),
                       ),
                     ),

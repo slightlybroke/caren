@@ -48,15 +48,15 @@ class LocalFamilyRepository implements FamilyRepository {
             [
               FamilyMember(
                 id: 'mem_1',
-                name: 'Eleanor Vance',
+                name: 'Eleanor Doe',
                 relationship: 'Mother',
                 city: 'Portland, OR',
                 avatarUrl: '',
-                role: FamilyRole.owner,
+                role: FamilyRole.member,
                 checkInStatus: CheckInStatus.completedToday,
                 lastCheckInTime:
                     DateTime.now().subtract(const Duration(hours: 2, minutes: 15)),
-                lastWellnessSummary: 'Feeling well & energized • Rested well',
+                lastWellnessSummary: 'Feeling well & energized • Morning walk',
                 sharingPermission: SharingPermission(
                   shareCheckInStatus: true,
                   shareSelfReportedMood: true,
@@ -67,7 +67,7 @@ class LocalFamilyRepository implements FamilyRepository {
               ),
               FamilyMember(
                 id: 'mem_2',
-                name: 'Arthur Vance',
+                name: 'Arthur Doe',
                 relationship: 'Father',
                 city: 'Portland, OR',
                 avatarUrl: '',
@@ -86,7 +86,7 @@ class LocalFamilyRepository implements FamilyRepository {
               ),
               FamilyMember(
                 id: 'mem_3',
-                name: 'Maya Lin',
+                name: 'Sarah Doe',
                 relationship: 'Sister',
                 city: 'Seattle, WA',
                 avatarUrl: '',
@@ -94,11 +94,11 @@ class LocalFamilyRepository implements FamilyRepository {
                 checkInStatus: CheckInStatus.completedToday,
                 lastCheckInTime:
                     DateTime.now().subtract(const Duration(hours: 4)),
-                lastWellnessSummary: 'Doing fine • Regular morning walk',
+                lastWellnessSummary: 'Doing great • Yoga session complete',
                 sharingPermission: SharingPermission(
                   shareCheckInStatus: true,
                   shareSelfReportedMood: true,
-                  shareVitalsMeasurements: false,
+                  shareVitalsMeasurements: true,
                   shareNotes: false,
                   lastUpdated: DateTime.now().subtract(const Duration(days: 5)),
                 ),
@@ -109,7 +109,7 @@ class LocalFamilyRepository implements FamilyRepository {
               DailyCheckIn(
                 id: 'chk_101',
                 userId: 'mem_1',
-                userName: 'Eleanor Vance',
+                userName: 'Eleanor Doe',
                 timestamp:
                     DateTime.now().subtract(const Duration(hours: 2, minutes: 15)),
                 feeling: WellnessFeeling.feelingWell,
