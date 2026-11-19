@@ -1,9 +1,13 @@
 <div align="center">
 
-  <img src="assets/branding/icon.png" alt="caren emblem" width="96" height="96" style="border-radius: 20px;" />
+<p align="center">
+  <img src="assets/branding/icon.png" alt="Caren emblem" width="96" height="96" />
+  <img src="assets/branding/wordmark_icon.png" alt="Caren wordmark" height="96" />
+</p>
 
-  # caren
-  ### Care, closer.
+<hr>
+
+<b><i>Care, closer.</b></i>
 
   **An open-source family wellbeing companion and personal sanctuary.**  
   *Voluntary check-ins, mindful routines, contactless optical vitals, and one-tap emergency assist.*
