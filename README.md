@@ -2,7 +2,7 @@
 
 Caren is an open-source family wellbeing app. Check in with the people you care about, take a private breathing break, and optionally use an Android camera for a personal wellness spot-check.
 
-[Try Caren in your browser](https://caren-care.web.app) · [MIT license](LICENSE)
+[Try Caren in your browser](https://try-caren.vercel.app) · [MIT license](LICENSE)
 
 The browser demo uses local sample accounts and data. Live camera-based pulse and breathing estimates use Presage SmartSpectra on Android.
 
