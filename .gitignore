@@ -92,3 +92,6 @@ GEMINI.md
 .gemini/
 .github/copilot-instructions.md
 .release-local/
+
+# Firebase Hosting CLI cache
+/.firebase/
