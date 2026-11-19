@@ -1,5 +1,3 @@
-# caren: Care, closer.
-
 <p align="center">
   <img src="assets/branding/wordmark_icon.png" alt="caren" width="280"/>
 </p>
