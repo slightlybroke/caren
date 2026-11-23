@@ -66,42 +66,44 @@ class FamilyMemberDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header Profile Card
-                CarenCard(
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 36,
-                        backgroundColor: AppColors.primaryContainer,
-                        child: Text(
-                          member.name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join(),
-                          style: AppTypography.displayMedium.copyWith(color: AppColors.primary),
+                Center(
+                  child: CarenCard(
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundColor: AppColors.primaryContainer,
+                          child: Text(
+                            member.name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join(),
+                            style: AppTypography.displayMedium.copyWith(color: AppColors.primary),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(member.name, style: AppTypography.titleLarge),
-                      Text(
-                        '${member.relationship}${member.city.isNotEmpty ? " • Living in ${member.city}" : ""}',
-                        style: AppTypography.bodyMedium,
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      StatusBadge(
-                        label: member.role.displayName,
-                        type: BadgeType.neutral,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      StatusBadge(
-                        label: isCompleted ? 'Completed Today’s Check-in' : 'Check-in Pending Today',
-                        type: isCompleted ? BadgeType.success : BadgeType.neutral,
-                        icon: isCompleted ? Icons.check_circle : Icons.schedule,
-                      ),
-                      if (member.lastCheckInTime != null) ...[
-                        const SizedBox(height: AppSpacing.xs),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(member.name, style: AppTypography.titleLarge),
                         Text(
-                          'Last check-in: ${AppFormatters.formatDateTime(member.lastCheckInTime!)}',
-                          style: AppTypography.caption,
+                          '${member.relationship}${member.city.isNotEmpty ? " • Living in ${member.city}" : ""}',
+                          style: AppTypography.bodyMedium,
                         ),
+                        const SizedBox(height: AppSpacing.xs),
+                        StatusBadge(
+                          label: member.role.displayName,
+                          type: BadgeType.neutral,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        StatusBadge(
+                          label: isCompleted ? 'Completed Today’s Check-in' : 'Check-in Pending Today',
+                          type: isCompleted ? BadgeType.success : BadgeType.neutral,
+                          icon: isCompleted ? Icons.check_circle : Icons.schedule,
+                        ),
+                        if (member.lastCheckInTime != null) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Last check-in: ${AppFormatters.formatDateTime(member.lastCheckInTime!)}',
+                            style: AppTypography.caption,
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),

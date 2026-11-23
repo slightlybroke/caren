@@ -105,7 +105,7 @@ class CarenButton extends StatelessWidget {
       case CarenButtonVariant.primary:
         return AppColors.onPrimary;
       case CarenButtonVariant.secondary:
-        return AppColors.onSecondary;
+        return AppColors.onSecondaryContainer;
       case CarenButtonVariant.outline:
         return AppColors.primary;
       case CarenButtonVariant.text:
@@ -133,7 +133,7 @@ class CarenButton extends StatelessWidget {
       case CarenButtonVariant.secondary:
         return ElevatedButton.styleFrom(
           backgroundColor: AppColors.secondaryContainer,
-          foregroundColor: AppColors.onSecondary,
+          foregroundColor: AppColors.onSecondaryContainer,
           elevation: 0,
           minimumSize: Size(minHeight, minHeight),
           shape: baseShape,
