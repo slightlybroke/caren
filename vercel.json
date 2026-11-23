@@ -1,4 +1,6 @@
 {
+  "framework": null,
+  "buildCommand": "sdk_dir=$(mktemp -d) && git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git \"$sdk_dir\" && \"$sdk_dir/bin/flutter\" build web --release",
   "outputDirectory": "build/web",
   "cleanUrls": true,
   "rewrites": [
