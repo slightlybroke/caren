@@ -22,7 +22,7 @@
   <br/>
 
   [Try Live Web Demo](https://try-caren.vercel.app) &nbsp;|&nbsp; 
-  [Download Android APK (v1.0.0)](https://github.com/slightlybroke/caren/releases/tag/android-demo-v1) &nbsp;|&nbsp; 
+  [Download Android APK (v1.0.1)](https://github.com/slightlybroke/caren/releases/tag/v1.0.1) &nbsp;|&nbsp;
   [Architecture Deep Dive](ARCHITECTURE.md) &nbsp;|&nbsp; 
   [Contributing](CONTRIBUTING.md) &nbsp;|&nbsp; 
   [Security & Privacy](SECURITY.md)
@@ -30,6 +30,13 @@
 </div>
 
 ---
+
+## Family screens
+
+<p align="center">
+  <img src="docs/screenshots/family-dashboard.png" alt="Family dashboard with a legible Start Today’s Check-In button" width="260" />
+  <img src="docs/screenshots/family-member.png" alt="Family member screen with the profile card centered above sharing permissions" width="260" />
+</p>
 
 ## The Problem: The Distance Caregiver Dilemma
 
